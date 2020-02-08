@@ -1,3 +1,0 @@
-/Users/loganmorrison/Documents/git_hub/DarkSUN/cmake-build-debug/darksun/tests/googletest-download/CMakeFiles/rebuild_cache.dir
-/Users/loganmorrison/Documents/git_hub/DarkSUN/cmake-build-debug/darksun/tests/googletest-download/CMakeFiles/edit_cache.dir
-/Users/loganmorrison/Documents/git_hub/DarkSUN/cmake-build-debug/darksun/tests/googletest-download/CMakeFiles/googletest.dir
