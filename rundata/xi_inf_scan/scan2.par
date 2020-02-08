@@ -1,0 +1,13 @@
+L1 1.0
+c 1.0
+a 1.0
+mu_eta 1.0
+mu_delta 1.0
+xi_inf 1e-1
+has_dp 1
+log_lam_min -7.0
+log_lam_max 1.0
+num_lams 100
+N_min 5
+N_max 105
+out_file /Users/loganmorrison/CLionProjects/DarkSUN/rundata/xi_inf_scan/xi_inf_1e-1.txt
