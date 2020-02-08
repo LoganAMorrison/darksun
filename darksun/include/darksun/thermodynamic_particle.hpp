@@ -1,6 +1,24 @@
-//
-// Created by Logan Morrison on 2019-06-09.
-//
+/**
+ * Created by Logan Morrison on 2019-06-09.
+ *
+ * Class for computing various thermodynamic quantities of a particle in
+ * thermal equilibrium.
+ *
+ * Attributes:
+ *      double mass: mass of the particle in GeV
+ *      double g: internal dof of the particle
+ *      double spin2: 2 times the particles spin (i.e., for spin=1/2, spin2 = 1)
+ *
+ * Methods:
+ *      double neq(double T): equilibrium number density
+ *      double energy_density(double T): equilibrium energy density
+ *      double pressure_density(double T): equilibrium pressure density
+ *      double entropy_density(double T): equilibrium entropy density
+ *      double dof_energy(double T): equilibrium dof in energy
+ *      double dof_entropy(double T): equilibrium dof in entropy
+ *      
+ */
+
 
 #pragma once
 
