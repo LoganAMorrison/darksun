@@ -7,3 +7,28 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+cyphus-interpolation = { path = "../../cyphus-interpolation"}
+cyphus-specfun = { path = "../../cyphus-specfun"}
+cyphus-integration = {path = "../../cyphus-integration"}
+haliax-constants = { path = "../../haliax-constants"}
+haliax-thermal-functions = { path = "../../haliax-thermal-functions"}
+haliax-phase-space = { path = "../../haliax-phase-space"}
+lazy_static = "1.4"
+ndarray = "0.13.1"
+indicatif = "0.15.0"
+GSL = "1.1.0"
+
+[dependencies.pyo3]
+version = "*"
+
+[features]
+extension-module = ["pyo3/extension-module"]
+default = ["extension-module"]
+
+[lib]
+name = "darksun"
+crate-type = ["cdylib"]
+
+[[bin]]
+name = "generate_cs_data"
+path = "src/generate_cs_data.rs"
