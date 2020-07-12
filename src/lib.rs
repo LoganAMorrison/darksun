@@ -1,10 +1,15 @@
 //! The Dark SU(N) Model.
 //! This file contains the python API to the dark SU(N) model.
 pub mod brent;
+pub mod interp_utils;
 pub mod model;
 pub mod ode;
+pub mod standard_model;
 
-//use ode::boltz::*;
+use crate::ode::radau5::*;
+use crate::standard_model::*;
+use haliax_constants::cosmology::*;
+use ndarray::prelude::*;
 use pyo3::exceptions;
 use pyo3::prelude::*;
 
@@ -193,11 +198,47 @@ impl DarkSun {
         Ok(self.rust_thermal_cross_section_2eta_4eta(x))
     }
     /// Compute the thermally-averaged annihilation cross section for
+    /// 2eta -> 4eta as a function of x = meta/Teta,
+    pub fn thermal_cross_section_4eta_2eta(&self, x: f64) -> PyResult<f64> {
+        Ok(self.rust_thermal_cross_section_4eta_2eta(x))
+    }
+    /// Compute the thermally-averaged annihilation cross section for
     /// 2eta -> 2delta as a function of x = meta/Teta,
     pub fn thermal_cross_section_2eta_2delta(&self, x: f64) -> PyResult<f64> {
         Ok(self.rust_thermal_cross_section_2eta_2del(x))
     }
-    //    pub fn solve_boltzmann(&mut self) -> PyResult<(Vec<f64>, Vec<Vec<f64>>)> {
-    //        Ok(self.solve())
-    //    }
+    pub fn solve_boltzmann(&mut self) -> PyResult<(Vec<f64>, Vec<Vec<f64>>)> {
+        let td = self.lamc / 2.0;
+        let xi = self.compute_xi_const_td(td).unwrap();
+        let tsm = td / xi;
+
+        let xstart = self.m_eta / tsm;
+        let xfinal = self.m_eta / T_CMB;
+        let s = sm_entropy_density(tsm);
+        let w_eta = (self.neq_eta(td) / s).ln();
+        let y_del = (self.neq_del(td) / s) * (-self.adel * self.n as f64).exp();
+
+        let logx_span = (xstart.ln(), xfinal.ln());
+        let dlogx = (logx_span.1 - logx_span.0) / 100.0;
+
+        let w = Array::from(vec![w_eta, y_del]);
+        let mut rad = Radau5::builder(w, logx_span).dx(dlogx).build();
+        match rad {
+            Ok(mut integrator) => {
+                let solution = integrator.integrate(self);
+                match solution {
+                    Ok(sol) => {
+                        let mut us: Vec<Vec<f64>> = vec![];
+                        us.resize(sol.1.len(), vec![0.0; (sol.1)[0].len()]);
+                        for i in 0..us.len() {
+                            us[i] = (sol.1)[i].to_vec();
+                        }
+                        Ok((sol.0, us))
+                    }
+                    Err(err) => Err(exceptions::RuntimeError::py_err(err)),
+                }
+            }
+            Err(err) => Err(exceptions::RuntimeError::py_err(err)),
+        }
+    }
 }

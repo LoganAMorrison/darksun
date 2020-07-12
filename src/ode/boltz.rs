@@ -1,6 +1,6 @@
+use crate::standard_model::*;
 use crate::DarkSun;
 use haliax_constants::prelude::*;
-use haliax_thermal_functions::prelude::*;
 use ndarray::prelude::*;
 use std::f64::consts::PI;
 
@@ -11,7 +11,7 @@ impl DarkSun {
         let gsm = sm_geff(tsm);
         return sm_sqrt_gstar(tsm) * (gsm / (gsm + gd * xi * xi * xi * xi)).sqrt();
     }
-    pub fn dudt(&self, mut dw: ArrayViewMut1<f64>, w: ArrayView1<f64>, logx: f64) {
+    pub fn boltzmann(&mut self, mut dw: ArrayViewMut1<f64>, w: ArrayView1<f64>, logx: f64) {
         let x = logx.exp();
 
         let meta = self.m_eta;
@@ -22,15 +22,25 @@ impl DarkSun {
         let neq = self.neq_eta(td);
         let weq = (neq / s).ln();
 
-        let sig_ee_eeee = self.rust_thermal_cross_section_2eta_4eta(meta / td);
-        let sig_eeee_ee = sig_ee_eeee / neq / neq;
+        if w[0] - weq > 0.1 && self.xi_fo.is_none() {
+            self.xi_fo = Some(xi);
+            self.tsm_fo = Some(tsm);
+        }
+        if tsm > T_BBN && self.xi_bbn.is_none() {
+            self.xi_bbn = Some(xi);
+        }
 
-        let pf_e = -(PI / 45.0).sqrt() * M_PLANK * self.sqrt_gstar(tsm, xi) * tsm * s * s;
+        let sige = self.rust_thermal_cross_section_4eta_2eta(meta / td);
+        let sigd = self.rust_thermal_cross_section_2eta_2del(meta / td);
 
-        dw[0] = pf_e * sig_eeee_ee * w[0].exp() * ((2.0 * w[0]).exp() - (2.0 * weq).exp());
+        let fac = (PI / 45.0).sqrt() * M_PLANK * self.sqrt_gstar(tsm, xi);
+        let pfe = -fac * tsm * s * s;
+        let pfd = fac * meta / (x * x);
+
+        dw[0] = pfe * sige * w[0].exp() * ((2.0 * w[0]).exp() - (2.0 * weq).exp());
+        dw[1] = pfd * sigd * (2.0 * w[0]).exp();
     }
-
-    pub fn dfdu(&mut self, mut j: ArrayViewMut2<f64>, w: ArrayView1<f64>, logx: f64) {
+    pub fn boltzmann_jac(&self, mut j: ArrayViewMut2<f64>, w: ArrayView1<f64>, logx: f64) {
         let x = logx.exp();
 
         let meta = self.m_eta;
@@ -41,11 +51,16 @@ impl DarkSun {
         let neq = self.neq_eta(td);
         let weq = (neq / s).ln();
 
-        let sig_ee_eeee = self.rust_thermal_cross_section_2eta_4eta(meta / td);
-        let sig_eeee_ee = sig_ee_eeee / neq / neq;
+        let sige = self.rust_thermal_cross_section_4eta_2eta(meta / td);
+        let sigd = self.rust_thermal_cross_section_2eta_2del(meta / td);
 
-        let pf_e = -(PI / 45.0).sqrt() * M_PLANK * self.sqrt_gstar(tsm, xi) * tsm * s * s;
-        j[[0, 0]] =
-            pf_e * sig_eeee_ee * w[0].exp() * (3.0 * (2.0 * w[0]).exp() - (2.0 * weq).exp());
+        let fac = (PI / 45.0).sqrt() * M_PLANK * self.sqrt_gstar(tsm, xi);
+        let pfe = -fac * tsm * s * s;
+        let pfd = fac * meta / (x * x);
+
+        j[[0, 0]] = pfe * sige * w[0].exp() * (3.0 * (2.0 * w[0]).exp() - (2.0 * weq).exp());
+        j[[0, 1]] = 0.0;
+        j[[1, 0]] = 2.0 * pfd * sigd * (2.0 * w[0]).exp();
+        j[[1, 1]] = 0.0;
     }
 }

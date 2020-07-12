@@ -36,6 +36,21 @@ impl DarkSun {
         int * pre
     }
     /// Compute the thermally-averaged annihilation cross section for
+    /// 4eta -> 2eta as a function of x = meta/Teta,
+    pub fn rust_thermal_cross_section_4eta_2eta(&self, x: f64) -> f64 {
+        let bes = x.cyl_bessel_kn_scaled(2);
+        let pre = PI.powi(4) * x.powi(3) / (self.m_eta.powi(6) * bes.powi(4));
+
+        let f = |z: f64| {
+            let z2 = z * z;
+            let sig = self.rust_cross_section_2eta_4eta(z * self.m_eta);
+            let kernal = z2 * (z2 - 4.0) * (x * z).cyl_bessel_k1_scaled() * (-x * (z - 4.0)).exp();
+            sig * kernal
+        };
+        let int = qagi(f, 4.0, f64::INFINITY, 1e-8, 1e-8, 500, 2).val;
+        int * pre
+    }
+    /// Compute the thermally-averaged annihilation cross section for
     /// 2eta -> 2delta as a function of x = meta/Teta,
     pub fn rust_thermal_cross_section_2eta_2del(&self, x: f64) -> f64 {
         let c = self.c;

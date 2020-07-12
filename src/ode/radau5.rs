@@ -1,4 +1,5 @@
 use super::linalg::*;
+use crate::DarkSun;
 use ndarray::prelude::*;
 
 pub struct Radau5 {
@@ -342,23 +343,29 @@ impl Radau5 {
     pub(crate) const TI31: f64 = -0.50287263494578687595;
     pub(crate) const TI32: f64 = 2.5719269498556054292;
     pub(crate) const TI33: f64 = -0.59603920482822492497;
-    pub(crate) const C1: f64 = 0.1550510257216822;
-    pub(crate) const C2: f64 = 0.6449489742783178;
-    pub(crate) const C1M1: f64 = -0.8449489742783178;
-    pub(crate) const C2M1: f64 = -0.3550510257216822;
-    pub(crate) const C1MC2: f64 = -0.4898979485566356;
-    pub(crate) const ALPHA: f64 = 2.681082873627752;
-    pub(crate) const BETA: f64 = 3.050430199247411;
-    pub(crate) const U1: f64 = 3.637834252744496;
 }
 
 impl Radau5 {
     pub fn integrate(
         &mut self,
-        dydx: &'_ dyn Fn(ArrayViewMut1<f64>, ArrayView1<f64>, f64),
-        jac: &'_ dyn Fn(ArrayViewMut2<f64>, ArrayView1<f64>, f64),
-    ) -> (Vec<f64>, Vec<Array1<f64>>) {
-        dbg!(&self.y);
+        model: &mut DarkSun,
+    ) -> Result<(Vec<f64>, Vec<Array1<f64>>), String> {
+        let sq6 = 6f64.sqrt();
+        let c1 = (4.0 - sq6) / 10.0;
+        let c2 = (4.0 + sq6) / 10.0;
+        let c1m1 = c1 - 1.0;
+        let c2m1 = c2 - 1.0;
+        let c1mc2 = c1 - c2;
+        let cbrt9 = 9f64.cbrt();
+        let cbrt81 = 81f64.cbrt();
+        let u1 = 1.0 / ((6.0 + cbrt81 - cbrt9) / 30.0);
+        let mut alph = (12.0 - cbrt81 + cbrt9) / 60.0;
+        let mut beta = (cbrt81 + cbrt9) * 3f64.sqrt() / 60.0;
+        let cno = alph * alph + beta * beta;
+
+        alph = alph / cno;
+        beta = beta / cno;
+
         let mut xs: Vec<f64> = vec![];
         let mut ys: Vec<Array1<f64>> = vec![];
 
@@ -388,7 +395,8 @@ impl Radau5 {
             self.scal[i] = self.atoler[i] + self.rtoler[i] * self.y[i].abs();
         }
 
-        dydx(self.y0.view_mut(), self.y.view(), self.x);
+        //dydx(self.y0.view_mut(), self.y.view(), self.x);
+        model.boltzmann(self.y0.view_mut(), self.y.view(), self.x);
         self.nfcn += 1;
 
         let mut hacc: f64 = 0.0;
@@ -398,29 +406,30 @@ impl Radau5 {
         let mut ier;
 
         // basic integration step
-        jac(self.fjac.view_mut(), self.y.view(), self.x);
+        //jac(self.fjac.view_mut(), self.y.view(), self.x);
+        model.boltzmann_jac(self.fjac.view_mut(), self.y.view(), self.x);
         self.caljac = true;
         let mut loopp = true;
         while loopp {
             loopp = false;
             // compute the matrices e1 and e2 and their decompositions
-            self.fac1 = Radau5::U1 / self.h;
-            self.alphn = Radau5::ALPHA / self.h;
-            self.betan = Radau5::BETA / self.h;
+            self.fac1 = u1 / self.h;
+            self.alphn = alph / self.h;
+            self.betan = beta / self.h;
 
             ier = self.decomp_real();
 
             if ier != 0 {
                 nsing += 1;
                 if nsing >= 5 {
-                    println!("Matrix is repeatedly singular");
-                    return (xs, ys);
+                    return Err("Matrix is repeatedly singular".to_owned());
                 }
                 self.h *= 0.5;
                 self.reject = true;
                 last = false;
                 if !self.caljac {
-                    jac(self.fjac.view_mut(), self.y.view(), self.x);
+                    //jac(self.fjac.view_mut(), self.y.view(), self.x);
+                    model.boltzmann_jac(self.fjac.view_mut(), self.y.view(), self.x);
                     self.caljac = true;
                 }
                 loopp = true;
@@ -432,14 +441,14 @@ impl Radau5 {
             if ier != 0 {
                 nsing += 1;
                 if nsing >= 5 {
-                    println!("Matrix is repeatedly singular");
-                    return (xs, ys);
+                    return Err("Matrix is repeatedly singular".to_owned());
                 }
                 self.h *= 0.5;
                 self.reject = true;
                 last = false;
                 if !self.caljac {
-                    jac(self.fjac.view_mut(), self.y.view(), self.x);
+                    //jac(self.fjac.view_mut(), self.y.view(), self.x);
+                    model.boltzmann_jac(self.fjac.view_mut(), self.y.view(), self.x);
                     self.caljac = true;
                 }
                 loopp = true;
@@ -450,13 +459,11 @@ impl Radau5 {
             loop {
                 self.nstep += 1;
                 if self.nstep >= self.nmax {
-                    println!("More than {} steps needed.", self.nmax);
-                    return (xs, ys);
+                    return Err(format!("More than {} steps needed.", self.nmax));
                 }
 
                 if 0.1 * self.h.abs() <= self.x.abs() * f64::EPSILON {
-                    println!("dx = {} less than dtmin.", self.h.abs());
-                    return (xs, ys);
+                    return Err(format!("dx = {} less than dtmin.", self.h.abs()));
                 }
 
                 let xph = self.x + self.h;
@@ -472,18 +479,15 @@ impl Radau5 {
                     }
                 } else {
                     let c3q = self.h / self.hold;
-                    let c1q = Radau5::C1 * c3q;
-                    let c2q = Radau5::C2 * c3q;
+                    let c1q = c1 * c3q;
+                    let c2q = c2 * c3q;
                     for i in 0..self.n {
                         let ak1 = self.cont[i + self.n];
                         let ak2 = self.cont[i + 2 * self.n];
                         let ak3 = self.cont[i + 3 * self.n];
-                        self.z1[i] =
-                            c1q * (ak1 + (c1q - Radau5::C2M1) * (ak2 + (c1q - Radau5::C1M1) * ak3));
-                        self.z2[i] =
-                            c2q * (ak1 + (c2q - Radau5::C2M1) * (ak2 + (c2q - Radau5::C1M1) * ak3));
-                        self.z3[i] =
-                            c3q * (ak1 + (c3q - Radau5::C2M1) * (ak2 + (c3q - Radau5::C1M1) * ak3));
+                        self.z1[i] = c1q * (ak1 + (c1q - c2m1) * (ak2 + (c1q - c1m1) * ak3));
+                        self.z2[i] = c2q * (ak1 + (c2q - c2m1) * (ak2 + (c2q - c1m1) * ak3));
+                        self.z3[i] = c3q * (ak1 + (c3q - c2m1) * (ak2 + (c3q - c1m1) * ak3));
                         self.f1[i] = Radau5::TI11 * self.z1[i]
                             + Radau5::TI12 * self.z2[i]
                             + Radau5::TI13 * self.z3[i];
@@ -508,15 +512,15 @@ impl Radau5 {
                         if ier != 0 {
                             nsing += 1;
                             if nsing >= 5 {
-                                println!("Matrix is repeatedly singular");
-                                return (xs, ys);
+                                return Err("Matrix is repeatedly singular".to_owned());
                             }
                         }
                         self.h *= 0.5;
                         self.reject = true;
                         last = false;
                         if !self.caljac {
-                            jac(self.fjac.view_mut(), self.y.view(), self.x);
+                            model.boltzmann_jac(self.fjac.view_mut(), self.y.view(), self.x);
+                            //jac(self.fjac.view_mut(), self.y.view(), self.x);
                             self.caljac = true;
                         }
                         loopp = true;
@@ -526,26 +530,21 @@ impl Radau5 {
                     for i in 0..self.n {
                         self.cont[i] = self.y[i] + self.z1[i];
                     }
-                    dydx(
-                        self.z1.view_mut(),
-                        self.cont.view(),
-                        self.x + Radau5::C1 * self.h,
-                    );
+                    //dydx(self.z1.view_mut(), self.cont.view(), self.x + c1 * self.h);
+                    model.boltzmann(self.z1.view_mut(), self.cont.view(), self.x + c1 * self.h);
 
                     for i in 0..self.n {
                         self.cont[i] = self.y[i] + self.z2[i];
                     }
-                    dydx(
-                        self.z2.view_mut(),
-                        self.cont.view(),
-                        self.x + Radau5::C2 * self.h,
-                    );
+                    //dydx(self.z2.view_mut(), self.cont.view(), self.x + c2 * self.h);
+                    model.boltzmann(self.z2.view_mut(), self.cont.view(), self.x + c2 * self.h);
 
                     for i in 0..self.n {
                         self.cont[i] = self.y[i] + self.z3[i];
                     }
 
-                    dydx(self.z3.view_mut(), self.cont.view(), xph);
+                    //dydx(self.z3.view_mut(), self.cont.view(), xph);
+                    model.boltzmann(self.z3.view_mut(), self.cont.view(), xph);
                     self.nfcn += 3;
 
                     // solve the linear systems
@@ -564,8 +563,7 @@ impl Radau5 {
                     let mut denom;
                     for i in 0..self.n {
                         denom = self.scal[i];
-                        dyno = dyno
-                            + (self.z1[i] / denom).powi(2)
+                        dyno += (self.z1[i] / denom).powi(2)
                             + (self.z2[i] / denom).powi(2)
                             + (self.z3[i] / denom).powi(2);
                     }
@@ -584,14 +582,20 @@ impl Radau5 {
                             let dyth = faccon * dyno * theta.powi((self.nit - 1 - newt) as i32)
                                 / self.fnewt;
                             if dyth >= 1.0 {
-                                let qnewt = 1.0e-4f64.max(20.0f64.min(dyth));
+                                let qnewt = 1e-4f64.max(20f64.min(dyth));
                                 let hhfac =
                                     0.8 * qnewt.powf(-1.0 / (4 + self.nit - 1 - newt) as f64);
                                 self.h *= hhfac;
                                 self.reject = true;
                                 last = false;
-                                if !self.caljac {
-                                    jac(self.fjac.view_mut(), self.y.view(), self.x);
+                                // TODO check that this is isn't supposed to be !caljac
+                                if self.caljac {
+                                    model.boltzmann_jac(
+                                        self.fjac.view_mut(),
+                                        self.y.view(),
+                                        self.x,
+                                    );
+                                    //jac(self.fjac.view_mut(), self.y.view(), self.x);
                                     self.caljac = true;
                                 }
                                 loopp = true;
@@ -601,15 +605,15 @@ impl Radau5 {
                             if ier != 0 {
                                 nsing += 1;
                                 if nsing >= 5 {
-                                    println!("Matrix is repeatedly singular");
-                                    return (xs, ys);
+                                    return Err("Matrix is repeatedly singular".to_owned());
                                 }
                             }
                             self.h *= 0.5;
                             self.reject = true;
                             last = false;
                             if !self.caljac {
-                                jac(self.fjac.view_mut(), self.y.view(), self.x);
+                                model.boltzmann_jac(self.fjac.view_mut(), self.y.view(), self.x);
+                                //jac(self.fjac.view_mut(), self.y.view(), self.x);
                                 self.caljac = true;
                             }
                             loopp = true;
@@ -618,9 +622,9 @@ impl Radau5 {
                     }
                     dynold = dyno.max(f64::EPSILON);
                     for i in 0..self.n {
-                        self.f1[i] = self.f1[i] + self.z1[i];
-                        self.f2[i] = self.f2[i] + self.z2[i];
-                        self.f3[i] = self.f3[i] + self.z3[i];
+                        self.f1[i] += self.z1[i];
+                        self.f2[i] += self.z2[i];
+                        self.f3[i] += self.z3[i];
                         self.z1[i] = Radau5::T11 * self.f1[i]
                             + Radau5::T12 * self.f2[i]
                             + Radau5::T13 * self.f3[i];
@@ -640,7 +644,8 @@ impl Radau5 {
 
                 // error estimation
                 self.err = 0.0;
-                self.error_estimate(&dydx);
+                //self.error_estimate(&dydx);
+                self.error_estimate(model);
 
                 // computation of hnew -- require 0.2 <= hnew/h <= 8.
                 let fac = self.safe.min(cfac / (newt + 2 * self.nit) as f64);
@@ -663,30 +668,33 @@ impl Radau5 {
                             hnew = self.h / quot;
                         }
                         hacc = self.h;
-                        erracc = 1.0e-2f64.max(self.err);
+                        erracc = 1e-2f64.max(self.err);
                     }
                     self.xold = self.x;
                     self.hold = self.h;
                     self.x = xph;
                     for i in 0..self.n {
                         self.y[i] += self.z3[i];
-                        self.cont[i + self.n] = (self.z2[i] - self.z3[i]) / Radau5::C2M1;
-                        let ak = (self.z1[i] - self.z2[i]) / Radau5::C1MC2;
-                        let mut acont3 = self.z1[i] / Radau5::C1;
-                        acont3 = (ak - acont3) / Radau5::C2;
-                        self.cont[i + 2 * self.n] = (ak - self.cont[i + self.n]) / Radau5::C1M1;
+                        self.cont[i + self.n] = (self.z2[i] - self.z3[i]) / c2m1;
+                        let ak = (self.z1[i] - self.z2[i]) / c1mc2;
+                        let mut acont3 = self.z1[i] / c1;
+                        acont3 = (ak - acont3) / c2;
+                        self.cont[i + 2 * self.n] = (ak - self.cont[i + self.n]) / c1m1;
                         self.cont[i + 3 * self.n] = self.cont[i + 2 * self.n] - acont3;
                     }
                     for i in 0..self.n {
                         self.scal[i] = self.atoler[i] + self.rtoler[i] * self.y[i].abs();
                     }
+                    for i in 0..self.n {
+                        self.cont[i] = self.y[i];
+                    }
                     self.solution_output(&mut xs, &mut ys);
                     self.caljac = false;
                     if last {
-                        self.h = hopt;
-                        return (xs, ys);
+                        return Ok((xs, ys));
                     }
-                    dydx(self.y0.view_mut(), self.y.view(), self.x);
+                    //dydx(self.y0.view_mut(), self.y.view(), self.x);
+                    model.boltzmann(self.y0.view_mut(), self.y.view(), self.x);
                     self.nfcn += 1;
                     hnew = posneg * hnew.abs().min(hmaxn);
                     hopt = self.h.min(hnew);
@@ -705,7 +713,8 @@ impl Radau5 {
                         self.h = hnew;
                     }
                     if theta > self.thet {
-                        jac(self.fjac.view_mut(), self.y.view(), self.x);
+                        model.boltzmann_jac(self.fjac.view_mut(), self.y.view(), self.x);
+                        //jac(self.fjac.view_mut(), self.y.view(), self.x);
                         self.caljac = true;
                     }
                     loopp = true;
@@ -722,7 +731,8 @@ impl Radau5 {
                         self.nrejct += 1;
                     }
                     if !self.caljac {
-                        jac(self.fjac.view_mut(), self.y.view(), self.x);
+                        model.boltzmann_jac(self.fjac.view_mut(), self.y.view(), self.x);
+                        //jac(self.fjac.view_mut(), self.y.view(), self.x);
                         self.caljac = true;
                     }
                     loopp = true;
@@ -776,7 +786,11 @@ impl Radau5 {
             self.ip2.view(),
         );
     }
-    fn error_estimate(&mut self, dydx: &'_ &dyn Fn(ArrayViewMut1<f64>, ArrayView1<f64>, f64)) {
+    fn error_estimate(
+        &mut self,
+        //dydx: &'_ &dyn Fn(ArrayViewMut1<f64>, ArrayView1<f64>, f64)
+        model: &mut DarkSun,
+    ) {
         let hee1 = -(13.0 + 7.0 * 6.0f64.sqrt()) / (3.0 * self.h);
         let hee2 = (-13.0 + 7.0 * 6.0f64.sqrt()) / (3.0 * self.h);
         let hee3 = -1.0 / (3.0 * self.h);
@@ -806,7 +820,8 @@ impl Radau5 {
             for i in 0..self.n {
                 self.cont[i] += self.y[i];
             }
-            dydx(self.f1.view_mut(), self.cont.view(), self.x);
+            //dydx(self.f1.view_mut(), self.cont.view(), self.x);
+            model.boltzmann(self.f1.view_mut(), self.cont.view(), self.x);
             for i in 0..self.n {
                 self.cont[i] = self.f1[i] + self.f2[i];
             }
@@ -861,24 +876,24 @@ impl Radau5 {
 mod test {
     use super::*;
 
-    #[test]
-    fn test_van_der_pol() {
-        let dydx = |mut dy: ArrayViewMut1<f64>, y: ArrayView1<f64>, x: f64| {
-            dy[0] = y[1];
-            dy[1] = (1.0 - y[0] * y[0]) * y[1] - y[0];
-        };
-        let jac = |mut j: ArrayViewMut2<f64>, y: ArrayView1<f64>, x: f64| {
-            j[[0, 0]] = 0.0;
-            j[[0, 1]] = 1.0;
-            j[[1, 0]] = -2.0 * y[0] * y[1] - 1.0;
-            j[[1, 1]] = 1.0 - y[0] * y[0];
-        };
-        let y: Array1<f64> = Array::from(vec![1.0, 0.0]);
-        let mut integrator = Radau5::builder(y, (0.0, 10.0)).dx(1e-2).build().unwrap();
-        let (xs, ys) = integrator.integrate(&dydx, &jac);
-
-        for (x, y) in xs.iter().zip(ys.iter()) {
-            println!("x, y = {}, {:?}", x, y);
-        }
-    }
+    //    #[test]
+    //    fn test_van_der_pol() {
+    //        let dydx = |mut dy: ArrayViewMut1<f64>, y: ArrayView1<f64>, _x: f64| {
+    //            dy[0] = y[1];
+    //            dy[1] = (1.0 - y[0] * y[0]) * y[1] - y[0];
+    //        };
+    //        let jac = |mut j: ArrayViewMut2<f64>, y: ArrayView1<f64>, _x: f64| {
+    //            j[[0, 0]] = 0.0;
+    //            j[[0, 1]] = 1.0;
+    //            j[[1, 0]] = -2.0 * y[0] * y[1] - 1.0;
+    //            j[[1, 1]] = 1.0 - y[0] * y[0];
+    //        };
+    //        let y: Array1<f64> = Array::from(vec![1.0, 0.0]);
+    //        let mut integrator = Radau5::builder(y, (0.0, 10.0)).dx(0.5).build().unwrap();
+    //        let (xs, ys) = integrator.integrate(&dydx, &jac);
+    //
+    //        for (x, y) in xs.iter().zip(ys.iter()) {
+    //            println!("x, y = {}, {:?}", x, y);
+    //        }
+    //    }
 }

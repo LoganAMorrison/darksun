@@ -11,7 +11,6 @@ cyphus-interpolation = { path = "../../cyphus-interpolation"}
 cyphus-specfun = { path = "../../cyphus-specfun"}
 cyphus-integration = {path = "../../cyphus-integration"}
 haliax-constants = { path = "../../haliax-constants"}
-haliax-thermal-functions = { path = "../../haliax-thermal-functions"}
 haliax-phase-space = { path = "../../haliax-phase-space"}
 lazy_static = "1.4"
 ndarray = "0.13.1"

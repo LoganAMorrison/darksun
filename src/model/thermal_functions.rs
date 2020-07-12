@@ -1,8 +1,8 @@
 use crate::brent::brent;
+use crate::standard_model::*;
 use crate::DarkSun;
 use cyphus_specfun::bessel::CylBesselK;
 use cyphus_specfun::lambert_w::LambertW;
-use haliax_thermal_functions::prelude::*;
 use std::f64::consts::PI;
 
 const SM_HEFF_INF: f64 = 106.83;
@@ -26,14 +26,13 @@ impl DarkSun {
     }
     pub fn heff_del(&self, td: f64) -> f64 {
         let x = self.m_del / td;
-        let g = (self.n + 1) as f64;
         let x3 = x * x * x;
         let pi4 = PI * PI * PI * PI;
+        let g = (self.n + 1) as f64;
         g * 45.0 / (4.0 * pi4) * x3 * x.cyl_bessel_kn(3)
     }
     pub fn dark_heff(&self, td: f64) -> f64 {
         let pi4 = PI * PI * PI * PI;
-
         let xe = self.m_eta / td;
         let xe3 = xe * xe * xe;
         let xd = self.m_del / td;
@@ -43,11 +42,9 @@ impl DarkSun {
     }
     pub fn dark_geff(&self, td: f64) -> f64 {
         let pi4 = PI * PI * PI * PI;
-
         let xe = self.m_eta / td;
         let xd = self.m_del / td;
         let gd = (self.n + 1) as f64;
-
         30.0 / (2.0 * pi4)
             * (xe * xe * (xe * xe.cyl_bessel_k1() + 3.0 * xe.cyl_bessel_kn(2))
                 + gd * xd * xd * (xd * xd.cyl_bessel_kn(3) + 3.0 * xd.cyl_bessel_kn(2)))
