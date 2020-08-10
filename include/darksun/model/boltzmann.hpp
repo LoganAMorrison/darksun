@@ -1,19 +1,124 @@
 #ifndef DARKSUN_MODEL_BOLTZMANN_HPP
 #define DARKSUN_MODEL_BOLTZMANN_HPP
 
+#include "darksun/constants.hpp"
 #include "darksun/model/compute_xi.hpp"
+#include "darksun/model/cross_sections.hpp"
+#include "darksun/model/dneff.hpp"
 #include "darksun/model/parameters.hpp"
 #include "darksun/model/thermal_functions.hpp"
+#include <fmt/core.h>
 #include <gsl/gsl_errno.h>
+#include <stiff/stiff.hpp>
 
 namespace darksun {
 namespace model {
 
+//===========================================================================
+//---- RHS of the Boltzmann -------------------------------------------------
+//===========================================================================
+
+void boltzmann(int *, double *t, double *y, double *dy,
+               DarkSunParameters &params) {
+
+  const double x = exp(*t);
+  const double meta = m_eta(params);
+  const double tsm = meta / x;
+  const double we = y[0]; // log(Yeta)
+
+  const double xi = compute_xi_const_tsm(tsm, params);
+  const double td = xi * tsm;
+  const double s = StandardModel::entropy_density(tsm);
+  const double we_eq = weq_eta(tsm, xi, params);
+
+  const double sige = thermal_cross_section_4eta_2eta(meta / td, params);
+  const double sigd = thermal_cross_section_2eta_2del(meta / td, params);
+
+  const double com =
+      sqrt(M_PI / 45) * M_PLANK * sqrt_gstar(tsm, xi, params) * tsm;
+  const double pfe = -s * s * com;
+  const double pfd = com / x;
+
+  // Determine if the eta' has frozen out
+  if (we - we_eq > 0.1 && params.xi_fo < 0.0) {
+    params.xi_fo = xi;
+    params.tsm_fo = tsm;
+  }
+
+  dy[0] = pfe * sige * exp(we) * (exp(2 * we) - exp(2 * we_eq));
+  dy[1] = pfd * sigd * exp(2 * we);
+}
+
+//===========================================================================
+//---- Jacobian RHS of the Boltzmann ----------------------------------------
+//===========================================================================
+
+void boltzmann_jac(int *, double *t, double *y, double *dfy, int *,
+                   const DarkSunParameters &params) {
+
+  const double x = exp(*t);
+  const double meta = m_eta(params);
+  const double tsm = meta / x;
+  const double we = y[0]; // log(Yeta)
+
+  const double xi = compute_xi_const_tsm(tsm, params);
+  const double td = xi * tsm;
+  const double s = StandardModel::entropy_density(tsm);
+  const double we_eq = weq_eta(tsm, xi, params);
+
+  const double sige = thermal_cross_section_4eta_2eta(meta / td, params);
+  const double sigd = thermal_cross_section_2eta_2del(meta / td, params);
+
+  const double com =
+      sqrt(M_PI / 45) * M_PLANK * sqrt_gstar(tsm, xi, params) * tsm;
+  const double pfe = com * (-s * s);
+  const double pfd = com / x;
+
+  // dfe / dWe
+  dfy[0] = pfe * sige * exp(we) * (3.0 * exp(2 * we) - exp(2 * we_eq));
+  // dfe / dYe
+  dfy[1] = 0.0;
+  // dfd / dWe
+  dfy[2] = 2.0 * pfd * sigd * exp(2 * we);
+  // dfd / dYd
+  dfy[3] = 0.0;
+}
+
+//===========================================================================
+//---- solution output ------------------------------------------------------
+//===========================================================================
+
+void solout(int *nr, double *xold, double *x, double *, double *cont, int *lrc,
+            int *, DarkSunParameters &params, int *,
+            const stiff::RadauWeight &w) {
+  double dx = params.dlogx;
+  double d = params.logx;
+  int i = params.sol_idx;
+  if (*nr == 1) {
+    d = *xold;
+  }
+  while ((*xold <= d) && (*x >= d)) {
+    int idx1 = 1, idx2 = 2;
+    params.ts[i] = d;
+    params.ys[i][0] = contra(&idx1, &d, cont, lrc, w);
+    params.ys[i][1] = contra(&idx2, &d, cont, lrc, w);
+
+    d += dx;
+    i += 1;
+  }
+  params.sol_idx = i;
+  params.logx = d;
+}
+
+//===========================================================================
+//---- Solve the Boltzmann --------------------------------------------------
+//===========================================================================
+
 void solve_boltzmann(double reltol, double abstol, DarkSunParameters &params) {
-  gsl_set_error_handler_off();
+  using namespace stiff;
 
   // Initial conditions
-  double meta = params.m_eta();
+  double meta = m_eta(params);
 
   // Integration interval
   double td = params.lam / 2.0;                // Start Td at confinement
@@ -21,6 +126,7 @@ void solve_boltzmann(double reltol, double abstol, DarkSunParameters &params) {
   double tsm = td / xi;                        // Initial SM temperature
   double start = log(meta / tsm);
   double final = log(meta / T_CMB);
+  params.dlogx = (final - start) / double(DarkSunParameters::SOL_LENGTH - 1);
 
   // Initial conditions : y[0] = log(Y_eta), y[1] = Y_del
   constexpr int ndim = 2;
@@ -59,24 +165,21 @@ void solve_boltzmann(double reltol, double abstol, DarkSunParameters &params) {
     work[i] = 0.0;
   }
 
-  // Set the spacing between solutions
-  set_dx(model, (final - start) / double(DarkSun::NUM_SOLS - 1));
-
   //==================================================================
   //---- Define lambdas which capture the model ----------------------
   //==================================================================
-  auto boltz = [model, &ipar](int *n, double *logx, double *y, double *dy) {
-    DarkSun::boltzmann(n, logx, y, dy, model, &ipar);
+  auto boltz = [&params, &ipar](int *n, double *logx, double *y, double *dy) {
+    boltzmann(n, logx, y, dy, params);
   };
-  auto jac = [model, &ipar](int *n, double *logx, double *y, double *dfy,
-                            int *ldfy) {
-    DarkSun::boltzmann_jac(n, logx, y, dfy, ldfy, model, &ipar);
+  auto jac = [&params, &ipar](int *n, double *logx, double *y, double *dfy,
+                              int *ldfy) {
+    boltzmann_jac(n, logx, y, dfy, ldfy, params);
   };
   auto mas = [](int *, double *, int *) {};
-  auto solo = [model, &ipar](int *nr, double *xold, double *x, double *y,
-                             double *cont, int *lrc, int *n, int *irtrn,
-                             const RadauWeight &w) {
-    DarkSun::solout(nr, xold, x, y, cont, lrc, n, model, &ipar, irtrn, w);
+  auto solo = [&params, &ipar](int *nr, double *xold, double *x, double *y,
+                               double *cont, int *lrc, int *n, int *irtrn,
+                               const RadauWeight &w) {
+    solout(nr, xold, x, y, cont, lrc, n, params, irtrn, w);
   };
 
   //==================================================================
@@ -86,32 +189,35 @@ void solve_boltzmann(double reltol, double abstol, DarkSunParameters &params) {
         &mljac, &mujac, mas, &imas, &mlmas, &mumas, solo, &iout, work.data(),
         &lwork, iwork.data(), &liwork, &idid);
 
-  // Save last state
-  set_sol_boltz(DarkSun::NUM_SOLS - 1, final, y[0], y[1], model);
-
   //==================================================================
   //---- Record/Calculate outputs ------------------------------------
   //==================================================================
   // If 'idid' > 0, that means that RADAU was successful. Otherwise,
   // there was an error
   if (idid > 0) {
-    set_rd_eta(model, m_eta(model) * exp(y[0]) * S_TODAY / RHO_CRIT);
-    set_rd_del(model, m_del(model) * y[1] * S_TODAY / RHO_CRIT);
-    set_xi_cmb(model, compute_xi_const_tsm(T_CMB, model));
-    set_xi_bbn(model, compute_xi_const_tsm(T_BBN, model));
-    set_dneff_bbn(model, compute_dneff_bbn(model));
-    set_dneff_cmb(model, compute_dneff_cmb(model));
-    set_eta_si_per_mass(model, cross_section_2eta_2eta(model) / m_eta(model));
-    set_del_si_per_mass(model, cross_section_2del_2del(model) / m_del(model));
+    // Save last state
+    constexpr size_t last_idx = DarkSunParameters::SOL_LENGTH - 1;
+    params.ts[last_idx] = final;
+    params.ys[last_idx][0] = y[0];
+    params.ys[last_idx][1] = y[1];
+
+    params.rd_eta = m_eta(params) * exp(y[0]) * S_TODAY / RHO_CRIT;
+    params.rd_del = m_del(params) * y[1] * S_TODAY / RHO_CRIT;
+    params.xi_cmb = compute_xi_const_tsm(T_CMB, params);
+    params.xi_bbn = compute_xi_const_tsm(T_BBN, params);
+    params.dneff_cmb = compute_dneff_bbn(params);
+    params.dneff_bbn = compute_dneff_bbn(params);
+    params.eta_si_per_mass = cross_section_2eta_2eta(params) / m_eta(params);
+    params.del_si_per_mass = cross_section_2del_2del(params) / m_del(params);
   } else {
-    set_rd_eta(model, NAN);
-    set_rd_del(model, NAN);
-    set_xi_cmb(model, NAN);
-    set_xi_bbn(model, NAN);
-    set_dneff_bbn(model, NAN);
-    set_dneff_cmb(model, NAN);
-    set_eta_si_per_mass(model, NAN);
-    set_del_si_per_mass(model, NAN);
+    params.rd_eta = NAN;
+    params.rd_del = NAN;
+    params.xi_cmb = NAN;
+    params.xi_bbn = NAN;
+    params.dneff_cmb = NAN;
+    params.dneff_bbn = NAN;
+    params.eta_si_per_mass = NAN;
+    params.del_si_per_mass = NAN;
   }
 }
 

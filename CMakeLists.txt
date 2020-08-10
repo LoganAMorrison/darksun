@@ -29,6 +29,10 @@ add_library(${DARKSUN_LIB} INTERFACE)
 target_include_directories(${DARKSUN_LIB} INTERFACE  "${CMAKE_SOURCE_DIR}/include")
 target_link_libraries(${DARKSUN_LIB} PUBLIC)
 
+set(STIFF_LIB stiff)
+add_library(${STIFF_LIB} INTERFACE)
+target_include_directories(${STIFF_LIB} INTERFACE  "${CMAKE_SOURCE_DIR}/include")
+target_link_libraries(${STIFF_LIB} PUBLIC)
 
 #============================================================================
 #---- Configure Google Test -------------------------------------------------
@@ -71,18 +75,41 @@ endif ()
 #============================================================================
 
 set(TEST_FILES
-	"test_decsol"
-		"test_model"
-		"test_radau")
+	"test_model"
+	"test_radau")
 
 foreach(tfile ${TEST_FILES})
 	add_executable(${tfile} "test/${tfile}.cpp")
 	target_link_libraries(${tfile} PUBLIC
-		${DARKSUN_LIB}
+		${DARKSUN_LIB} ${STIFF_LIB}
 		gtest_main
+		GSL::gsl
+		GSL::gslcblas
 		Eigen3::Eigen
 			fmt::fmt
 		${Boost_LIBRARIES})
 	set_target_properties(${tfile} PROPERTIES
 		RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}../../bin)
+endforeach()
+
+#============================================================================
+#---- Build Applications ----------------------------------------------------
+#============================================================================
+
+set(APP_FILES
+	"generate_cs_data")
+
+foreach(afile ${APP_FILES})
+	add_executable(${afile} "apps/${afile}.cpp")
+	target_link_libraries(${afile} PUBLIC
+			${DARKSUN_LIB} 
+			${STIFF_LIB}
+			gtest_main
+			GSL::gsl
+			GSL::gslcblas
+			Eigen3::Eigen
+			fmt::fmt
+			${Boost_LIBRARIES})
+	set_target_properties(${afile} PROPERTIES
+			RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}../../bin)
 endforeach()

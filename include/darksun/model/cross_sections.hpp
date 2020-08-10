@@ -39,13 +39,11 @@ double cross_section_2eta_4eta(const double cme,
   const double c66 = com * pow<2>(params.lec2) / 25.0;
   const double c46 = -2.0 * com * pow<2>(params.lec1) * params.lec2 / 15.0;
   // Scaled center-of-mass energy
-  const double z = cme / params.m_eta();
+  const double z = cme / m_eta(params);
 
-  auto reff = ScaledEtaCrossSection::get_instance();
-
-  return c44 * reff.scaled_cs_eta_44(z, params.acc_cs44) +
-         c66 * reff.scaled_cs_eta_66(z, params.acc_cs66) +
-         c46 * reff.scaled_cs_eta_46(z, params.acc_cs46);
+  return c44 * ScaledEtaCrossSection::scaled_cs_eta_44(z, params.acc_cs44) +
+         c66 * ScaledEtaCrossSection::scaled_cs_eta_66(z, params.acc_cs66) +
+         c46 * ScaledEtaCrossSection::scaled_cs_eta_46(z, params.acc_cs46);
 }
 
 /**
@@ -89,7 +87,7 @@ double thermal_cross_section_2eta_4eta(const double x,
 
   const double den = 2.0 * gsl_sf_bessel_Kn_scaled(2, x);
   const double pre = x / (den * den);
-  const double meta = params.m_eta();
+  const double meta = m_eta(params);
 
   auto f = [x, &params, meta](double z) -> double {
     const double z2 = z * z;
@@ -110,7 +108,7 @@ double thermal_cross_section_4eta_2eta(const double x,
   using boost::math::pow;
   using boost::math::quadrature::gauss_kronrod;
 
-  const double meta = params.m_eta();
+  const double meta = m_eta(params);
   const double bes = gsl_sf_bessel_Kn_scaled(2, x);
   const double pre = pow<4>(M_PI) * pow<3>(x) / (pow<6>(meta) * pow<4>(bes));
 
@@ -133,8 +131,8 @@ double thermal_cross_section_2eta_2del(const double x,
   using boost::math::pow;
   using boost::math::quadrature::gauss_kronrod;
 
-  const double meta = params.m_eta();
-  const double mdel = params.m_del();
+  const double meta = m_eta(params);
+  const double mdel = m_del(params);
 
   const double den = 2.0 * gsl_sf_bessel_Kn_scaled(2, x);
   const double pre = x / (den * den);
@@ -159,8 +157,8 @@ double thermal_cross_section_2del_2eta(const double xeta,
   using boost::math::pow;
   using boost::math::quadrature::gauss_kronrod;
 
-  const double meta = params.m_eta();
-  const double mdel = params.m_del();
+  const double meta = m_eta(params);
+  const double mdel = m_del(params);
   const double xdel = mdel * xeta / meta;
 
   const double den = 2.0 * gsl_sf_bessel_Kn_scaled(2, xdel);

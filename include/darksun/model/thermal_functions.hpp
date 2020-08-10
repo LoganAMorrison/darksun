@@ -16,7 +16,7 @@ namespace model {
 double neq_eta(const double td, const DarkSunParameters &params) {
   using boost::math::pow;
 
-  const double x = params.m_eta() / td;
+  const double x = m_eta(params) / td;
   const double g = 1.0;
   const double fac = g * pow<2>(x) * pow<3>(td) / (2.0 * pow<2>(M_PI));
 
@@ -30,8 +30,8 @@ double neq_eta(const double td, const DarkSunParameters &params) {
 double neq_del(const double td, const DarkSunParameters &params) {
   using boost::math::pow;
 
-  const double x = params.m_del() / td;
-  const double g = params.g_del();
+  const double x = m_del(params) / td;
+  const double g = g_del(params);
   const double eta = params.n % 2 == 0 ? 1.0 : -1.0;
   const double fac = g * pow<2>(x) * pow<3>(td) / (2.0 * pow<2>(M_PI));
 
@@ -46,7 +46,7 @@ double yeq_eta(const double tsm, const double xi,
                const DarkSunParameters &params) {
   using boost::math::pow;
 
-  const double x = params.m_eta() / (tsm * xi);
+  const double x = m_eta(params) / (tsm * xi);
   const double g = 1.0;
   const double fac =
       45.0 * g * x * x / (4.0 * pow<4>(M_PI) * StandardModel::heff(tsm));
@@ -61,8 +61,8 @@ double yeq_eta(const double tsm, const double xi,
 double yeq_del(const double tsm, const double xi,
                const DarkSunParameters &params) {
   using boost::math::pow;
-  const double x = params.m_del() / (tsm * xi);
-  const double g = params.g_del();
+  const double x = m_del(params) / (tsm * xi);
+  const double g = g_del(params);
   const double eta = params.n % 2 == 0 ? 1.0 : -1.0;
   const double fac =
       45.0 * g * x * x / (4.0 * pow<4>(M_PI) * StandardModel::heff(tsm));
@@ -77,7 +77,7 @@ double yeq_del(const double tsm, const double xi,
 double weq_eta(const double tsm, const double xi,
                const DarkSunParameters &params) {
   using boost::math::pow;
-  const double x = params.m_eta() / (tsm * xi);
+  const double x = m_eta(params) / (tsm * xi);
   const double g = 1.0;
   const double fac =
       45.0 * g * x * x / (4.0 * pow<4>(M_PI) * StandardModel::heff(tsm));
@@ -92,8 +92,8 @@ double weq_eta(const double tsm, const double xi,
 double weq_del(const double tsm, const double xi,
                const DarkSunParameters &params) {
   using boost::math::pow;
-  const double x = params.m_del() / (tsm * xi);
-  const double g = params.g_del();
+  const double x = m_del(params) / (tsm * xi);
+  const double g = g_del(params);
   const double eta = params.n % 2 == 0 ? 1.0 : -1.0;
   const double fac =
       45.0 * g * x * x / (4.0 * pow<4>(M_PI) * StandardModel::heff(tsm));
@@ -116,11 +116,11 @@ double dark_heff_inf(const DarkSunParameters &params) {
 
 double dark_heff(const double td, const DarkSunParameters &params) {
   using boost::math::pow;
-  const double xe = params.m_eta() / td;
-  const double xd = params.m_del() / td;
+  const double xe = m_eta(params) / td;
+  const double xd = m_del(params) / td;
 
   const double ge = 1.0;
-  const double gd = params.g_del();
+  const double gd = g_del(params);
 
   const double etae = 1.0;
   const double etad = params.n % 2 == 0 ? 1.0 : -1.0;
@@ -141,11 +141,11 @@ double dark_heff(const double td, const DarkSunParameters &params) {
 
 double dark_geff(const double td, const DarkSunParameters &params) {
   using boost::math::pow;
-  const double xe = params.m_eta() / td;
-  const double xd = params.m_del() / td;
+  const double xe = m_eta(params) / td;
+  const double xd = m_del(params) / td;
 
   const double ge = 1.0;
-  const double gd = params.g_del();
+  const double gd = g_del(params);
 
   const double etae = 1.0;
   const double etad = params.n % 2 == 0 ? 1.0 : -1.0;

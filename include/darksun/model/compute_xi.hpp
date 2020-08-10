@@ -24,7 +24,7 @@ auto xi_bounds_const_td(const double td, const DarkSunParameters &params)
 auto xi_bounds_const_tsm(const double tsm, const DarkSunParameters &params)
     -> std::pair<double, double> {
   using boost::math::pow;
-  const double xl = params.m_eta() / tsm;
+  const double xl = m_eta(params) / tsm;
   const double hsm = StandardModel::heff(tsm);
   const double hdinf = dark_heff_inf(params);
   const double sg = sum_g(params);
@@ -74,7 +74,7 @@ double compute_xi_const_tsm(const double tsm, const DarkSunParameters &params) {
       // Check if the eta is relativistic. If it is, its temperature redshifts
       // like the standard model temperature. Otherwise, it redshifts like
       // matter.
-      if (params.tsm_fo * params.xi_fo > params.m_eta()) {
+      if (params.tsm_fo * params.xi_fo > m_eta(params)) {
         return params.xi_fo;
       } else {
         return params.xi_fo * tsm / params.tsm_fo;

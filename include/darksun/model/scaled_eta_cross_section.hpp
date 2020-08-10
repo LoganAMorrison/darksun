@@ -11,12 +11,6 @@ namespace model {
 class ScaledEtaCrossSection {
 public:
   /**
-   * @breif Return the singleton reference to the object holding the data
-   * and function to compute the scaled 2eta -> 4eta cross-section.
-   */
-  static ScaledEtaCrossSection &get_instance() { return instance; }
-
-  /**
    *  @breif Compute the scaled cross-section for 2eta->4eta using only 4pt
    *  interactions
    *
@@ -31,11 +25,11 @@ public:
    *  energies beyond the interpolation range, we use a fit of the fo erm
    *  log10(cs) = m * log10(z) + b with m = 14 and b='eta_cs_intercept44'.
    */
-  double scaled_cs_eta_44(double z, gsl_interp_accel *acc) const {
+  static double scaled_cs_eta_44(double z, gsl_interp_accel *acc) {
     const double logz = log10(z);
     if (log_eta_z_min <= logz && logz <= log_eta_z_max) {
-      double val = gsl_spline_eval(spline_cs44, logz, acc);
-      return std::pow(10.0, val);
+      double val = gsl_spline_eval(get_instance().spline_cs44, logz, acc);
+      return pow(10.0, val);
     } else if (logz >= log_eta_z_max) {
       return pow(z, 14) * pow(10.0, eta_cs_intercept44);
     } else {
@@ -58,10 +52,10 @@ public:
    *  energies beyond the interpolation range, we use a fit of the form
    *  log10(cs) = m * log10(z) + b with m = 14 and b='eta_cs_intercept66'.
    */
-  double scaled_cs_eta_66(double z, gsl_interp_accel *acc) const {
+  static double scaled_cs_eta_66(double z, gsl_interp_accel *acc) {
     const double logz = log10(z);
     if (log_eta_z_min <= logz && logz <= log_eta_z_max) {
-      double val = gsl_spline_eval(spline_cs66, logz, acc);
+      double val = gsl_spline_eval(get_instance().spline_cs66, logz, acc);
       return std::pow(10.0, val);
     } else if (logz >= log_eta_z_max) {
       return pow(z, 14) * pow(10.0, eta_cs_intercept66);
@@ -87,10 +81,10 @@ public:
    * A6. For energies beyond the interpolation range, we use a fit of the form
    *  log10(cs) = m * log10(z) + b with m = 14 and b='eta_cs_intercept46'.
    */
-  double scaled_cs_eta_46(double z, gsl_interp_accel *acc) const {
+  static double scaled_cs_eta_46(double z, gsl_interp_accel *acc) {
     const double logz = log10(z);
     if (log_eta_z_min <= logz && logz <= log_eta_z_max) {
-      double val = gsl_spline_eval(spline_cs46, logz, acc);
+      double val = gsl_spline_eval(get_instance().spline_cs46, logz, acc);
       return std::pow(10.0, val);
     } else if (logz >= log_eta_z_max) {
       return pow(z, 14) * pow(10.0, eta_cs_intercept46);
@@ -101,6 +95,13 @@ public:
 
 private:
   static ScaledEtaCrossSection instance;
+
+  /**
+   * @breif Return the singleton reference to the object holding the data
+   * and function to compute the scaled 2eta -> 4eta cross-section.
+   */
+  static ScaledEtaCrossSection &get_instance() { return instance; }
+
   gsl_spline *spline_cs44;
   gsl_spline *spline_cs66;
   gsl_spline *spline_cs46;

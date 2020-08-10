@@ -1,6 +1,7 @@
 #ifndef DARKSUN_MODEL_PARAMETERS_HPP
 #define DARKSUN_MODEL_PARAMETERS_HPP
 
+#include <array>
 #include <cmath>
 #include <cstdlib>
 #include <gsl/gsl_spline.h>
@@ -9,6 +10,7 @@ namespace darksun {
 namespace model {
 
 class DarkSunParameters {
+
 public:
   size_t n;             // N in SU(N)
   double lam;           // Confinement scale
@@ -31,15 +33,18 @@ public:
   double eta_si_per_mass = -1.0;
   double del_si_per_mass = -1.0;
 
+  // These are used for controlling how the ODE solution is generated
+  static constexpr size_t SOL_LENGTH = 100;
+  double dlogx = -1.0; // Spacing between logx for solution output
+  double logx = -1.0;  // Current value logx
+  size_t sol_idx = 0;  // Index where solution should be inserted
+  std::array<double, SOL_LENGTH> ts{};
+  std::array<std::array<double, 2>, SOL_LENGTH> ys{};
+
   // Accelerators for use in interpolation function
   gsl_interp_accel *acc_cs44;
   gsl_interp_accel *acc_cs66;
   gsl_interp_accel *acc_cs46;
-
-  double m_eta() const { return mu_eta * lam / sqrt(double(n)); }
-  double m_del() const { return mu_del * lam * double(n); }
-  double g_del() const { return double(n) + 1; }
-  double dark_heff_inf() const { return 7.0 / 2.0 * n + 2.0 * (n * n - 1.0); }
 
   DarkSunParameters(size_t n, double lam) : n(n), lam(lam) {
     acc_cs44 = gsl_interp_accel_alloc();
