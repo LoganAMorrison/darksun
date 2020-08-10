@@ -14,7 +14,7 @@ public:
    * @breif Return the singleton reference to the object holding the data
    * and function to compute the scaled 2eta -> 4eta cross-section.
    */
-  const ScaledEtaCrossSection &get_instance() { return instance; }
+  static ScaledEtaCrossSection &get_instance() { return instance; }
 
   /**
    *  @breif Compute the scaled cross-section for 2eta->4eta using only 4pt
@@ -114,11 +114,6 @@ private:
     gsl_spline_init(spline_cs66, log_eta_zs, log_eta_cs66, 500);
     gsl_spline_init(spline_cs46, log_eta_zs, log_eta_cs46, 500);
   }
-  ~ScaledEtaCrossSection() {
-    gsl_spline_free(spline_cs44);
-    gsl_spline_free(spline_cs66);
-    gsl_spline_free(spline_cs46);
-  }
 
   static const double log_eta_zs[500];
   static const double log_eta_cs44[500];
@@ -134,6 +129,13 @@ private:
   static constexpr double eta_cs_intercept44 = -9.744896762121916;
   static constexpr double eta_cs_intercept66 = -10.667768576761643;
   static constexpr double eta_cs_intercept46 = -10.206870194730394;
+
+public:
+  ~ScaledEtaCrossSection() {
+    gsl_spline_free(spline_cs44);
+    gsl_spline_free(spline_cs66);
+    gsl_spline_free(spline_cs46);
+  }
 };
 
 ScaledEtaCrossSection ScaledEtaCrossSection::instance = ScaledEtaCrossSection();

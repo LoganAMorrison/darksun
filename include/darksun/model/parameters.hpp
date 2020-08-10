@@ -1,13 +1,14 @@
 #ifndef DARKSUN_MODEL_PARAMETERS_HPP
 #define DARKSUN_MODEL_PARAMETERS_HPP
 
+#include <cmath>
 #include <cstdlib>
 #include <gsl/gsl_spline.h>
 
 namespace darksun {
 namespace model {
 
-class DarkSun {
+class DarkSunParameters {
 public:
   size_t n;             // N in SU(N)
   double lam;           // Confinement scale
@@ -19,7 +20,24 @@ public:
   double mu_del = 1.0;  // Coefficient of del mass: md = mu * lam * n
   double xi_inf = 1e-2; // Ratio of dark to SM temperatures above EW scale
 
-  DarkSun(size_t n, double lam) : n(n), lam(lam) {}
+  // Accelerators for use in interpolation function
+  gsl_interp_accel *acc_cs44;
+  gsl_interp_accel *acc_cs66;
+  gsl_interp_accel *acc_cs46;
+
+  double m_eta() const { return mu_eta * lam / sqrt(double(n)); }
+  double m_del() const { return mu_del * lam * double(n); }
+
+  DarkSunParameters(size_t n, double lam) : n(n), lam(lam) {
+    acc_cs44 = gsl_interp_accel_alloc();
+    acc_cs66 = gsl_interp_accel_alloc();
+    acc_cs46 = gsl_interp_accel_alloc();
+  }
+  ~DarkSunParameters() {
+    gsl_interp_accel_free(acc_cs44);
+    gsl_interp_accel_free(acc_cs66);
+    gsl_interp_accel_free(acc_cs46);
+  }
 
 private:
 };
