@@ -4,7 +4,10 @@
 
 #include <darksun/darksun.hpp>
 #include <darksun/standard_model.hpp>
+#include <filesystem>
 #include <fmt/core.h>
+#include <fstream>
+#include <gsl/gsl_errno.h>
 #include <gtest/gtest.h>
 
 using namespace darksun;
@@ -27,6 +30,29 @@ TEST(TestModel, TestCrossSection) {
     fmt::print("{}, {}\n", cs, p.second);
     ASSERT_LE(std::abs(cs - p.second) / p.second, 0.1);
   }
+}
+
+TEST(TestModel, TestThermalCrossSection) {
+  gsl_set_error_handler_off();
+  std::string file =
+      std::filesystem::current_path().append("../rundata/tc_data.csv");
+  std::ofstream ofile(file);
+  DarkSunParameters params{10, 1e-1};
+  const size_t num_xs = 150.0;
+  const double logxmin = -1.0;
+  const double logxmax = 2.0;
+  const double logxstp = (logxmax - logxmin) / double(logxstp - 1);
+
+  ofile << "X,TC24,TC42\n";
+
+  for (size_t i = 0; i < num_xs; i++) {
+    const double logx = logxmin + i * logxstp;
+    const double x = pow(10.0, logx);
+    const double tc24 = thermal_cross_section_2eta_4eta(x, params);
+    const double tc42 = thermal_cross_section_4eta_2eta(x, params);
+    ofile << x << "," << tc24 << "," << tc42 << "\n";
+  }
+  ofile.close();
 }
 
 TEST(TestModel, TestEquilibrium) {
