@@ -125,9 +125,9 @@ private:
   static constexpr double log_eta_z_step = 0.0028014808074893587564;
 
   // Fitting results for 2eta->4eta for large z (100 < z = cme / meta)
-  static constexpr double eta_cs_intercept44 = -9.744896762121916;
-  static constexpr double eta_cs_intercept66 = -10.667768576761643;
-  static constexpr double eta_cs_intercept46 = -10.206870194730394;
+  static constexpr double eta_cs_intercept44 = -11.116318726988425;
+  static constexpr double eta_cs_intercept66 = -12.038358477167012;
+  static constexpr double eta_cs_intercept46 = -11.57800399152332;
 
 public:
   ~ScaledEtaCrossSection() {

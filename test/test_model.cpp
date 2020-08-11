@@ -9,6 +9,26 @@
 
 using namespace darksun;
 
+TEST(TestModel, TestCrossSection) {
+  DarkSunParameters params{10, 1e-1};
+  params.mu_eta = 1.0;
+  params.lec1 = 0.1;
+  params.lec2 = 0.1;
+  std::array<std::pair<double, double>, 5> mg_data = {
+      std::make_pair(1.0 + 1.0, 1.10971e8),
+      std::make_pair(5.0 + 5.0, 6.88532e17),
+      std::make_pair(10.0 + 10.0, 1.12898e22),
+      std::make_pair(50.0 + 50.0, 6.89559e31),
+      std::make_pair(100.0 + 100.0, 1.1289836e36),
+  };
+
+  for (const auto &p : mg_data) {
+    double cs = cross_section_2eta_4eta(p.first, params);
+    fmt::print("{}, {}\n", cs, p.second);
+    ASSERT_LE(std::abs(cs - p.second) / p.second, 0.1);
+  }
+}
+
 TEST(TestModel, TestEquilibrium) {
   DarkSunParameters params{10, 1e-1};
 
