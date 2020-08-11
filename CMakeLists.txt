@@ -98,15 +98,16 @@ endforeach()
 #============================================================================
 
 set(APP_FILES
-		"bm"
-		"c"
-		"c_vs_n"
-		"lec1"
-		"lec2"
-		"mu_eta"
-		"mu_del"
-		"xi_inf"
-	"generate_cs_data")
+	"bm"
+	"c"
+	"c_vs_n"
+	"lec1"
+	"lec2"
+	"mu_eta"		
+	"mu_del"
+	"xi_inf"
+	"generate_cs_data"
+	"thermal_cross_section")
 
 foreach(afile ${APP_FILES})
 	add_executable(${afile} "apps/${afile}.cpp")
