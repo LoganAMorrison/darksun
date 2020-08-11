@@ -7,7 +7,6 @@
 #include <gsl/gsl_spline.h>
 
 namespace darksun {
-namespace model {
 
 class DarkSunParameters {
 
@@ -70,7 +69,6 @@ double g_del(const DarkSunParameters &params) { return double(params.n) + 1; }
 
 double sum_g(const DarkSunParameters &params) { return 2.0 + double(params.n); }
 
-} // namespace model
 } // namespace darksun
 
 #endif // DARKSUN_MODEL_PARAMETERS_HPP

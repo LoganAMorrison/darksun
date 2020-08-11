@@ -7,7 +7,6 @@
 #include <fmt/core.h>
 #include <gtest/gtest.h>
 
-using namespace darksun::model;
 using namespace darksun;
 
 TEST(TestModel, TestEquilibrium) {

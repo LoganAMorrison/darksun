@@ -9,7 +9,6 @@
 #include <gsl/gsl_sf_bessel.h>
 
 namespace darksun {
-namespace model {
 
 //===========================================================================
 //---- Scaled cross-sections valid for all z = cme / meta -------------------
@@ -178,7 +177,6 @@ double thermal_cross_section_2del_2eta(const double xeta,
   return pre * sig * integral;
 }
 
-} // namespace model
 } // namespace darksun
 
 #endif // DARKSUN_MODEL_CROSS_SECTIONS_HPP

@@ -7,7 +7,6 @@
 #include <boost/math/special_functions/pow.hpp>
 
 namespace darksun {
-namespace model {
 
 double compute_dneff_cmb(const DarkSunParameters &params) {
   using namespace boost::math;
@@ -28,7 +27,6 @@ double compute_dneff_bbn(const DarkSunParameters &params) {
   }
   return NAN;
 }
-} // namespace model
 } // namespace darksun
 
 #endif // DARKSUN_MODEL_DNEFF_HPP

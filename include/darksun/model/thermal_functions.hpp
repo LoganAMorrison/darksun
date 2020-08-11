@@ -7,7 +7,6 @@
 #include <gsl/gsl_sf_bessel.h>
 
 namespace darksun {
-namespace model {
 
 //===========================================================================
 //---- Functions for computing equilibrium number densities -----------------
@@ -176,7 +175,6 @@ double sqrt_gstar(const double tsm, const double xi,
   return StandardModel::sqrt_gstar(tsm) * sqrt(gsm / (gsm + gd * pow<4>(xi)));
 }
 
-} // namespace model
 } // namespace darksun
 
 #endif // DARKSUN_MODEL_THERMAL_FUNCTIONS_HPP

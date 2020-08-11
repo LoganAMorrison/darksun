@@ -12,14 +12,13 @@
 #include <stiff/stiff.hpp>
 
 namespace darksun {
-namespace model {
 
 //===========================================================================
 //---- RHS of the Boltzmann -------------------------------------------------
 //===========================================================================
 
 void boltzmann(int *, double *t, double *y, double *dy,
-               DarkSunParameters &params) {
+               const DarkSunParameters &params) {
 
   const double x = exp(*t);
   const double meta = m_eta(params);
@@ -38,12 +37,6 @@ void boltzmann(int *, double *t, double *y, double *dy,
       sqrt(M_PI / 45) * M_PLANK * sqrt_gstar(tsm, xi, params) * tsm;
   const double pfe = -s * s * com;
   const double pfd = com / x;
-
-  // Determine if the eta' has frozen out
-  if (we - we_eq > 0.1 && params.xi_fo < 0.0) {
-    params.xi_fo = xi;
-    params.tsm_fo = tsm;
-  }
 
   dy[0] = pfe * sige * exp(we) * (exp(2 * we) - exp(2 * we_eq));
   dy[1] = pfd * sigd * exp(2 * we);
@@ -88,16 +81,29 @@ void boltzmann_jac(int *, double *t, double *y, double *dfy, int *,
 //---- solution output ------------------------------------------------------
 //===========================================================================
 
-void solout(int *nr, double *xold, double *x, double *, double *cont, int *lrc,
-            int *, DarkSunParameters &params, int *,
+void solout(int *nr, double *logxold, double *logx, double *y, double *cont,
+            int *lrc, int *, DarkSunParameters &params, int *,
             const stiff::RadauWeight &w) {
+
+  // Determine if the eta' has frozen out
+  const double x = exp(*logx);
+  const double meta = m_eta(params);
+  const double tsm = meta / x;
+  const double we = y[0];
+  const double xi = compute_xi_const_tsm(tsm, params);
+  const double we_eq = weq_eta(tsm, xi, params);
+  if (we - we_eq > 0.1 && params.xi_fo < 0.0) {
+    params.xi_fo = xi;
+    params.tsm_fo = tsm;
+  }
+
   double dx = params.dlogx;
   double d = params.logx;
   int i = params.sol_idx;
   if (*nr == 1) {
-    d = *xold;
+    d = *logxold;
   }
-  while ((*xold <= d) && (*x >= d)) {
+  while ((*logxold <= d) && (*logx >= d)) {
     int idx1 = 1, idx2 = 2;
     params.ts[i] = d;
     params.ys[i][0] = contra(&idx1, &d, cont, lrc, w);
@@ -164,6 +170,7 @@ void solve_boltzmann(double reltol, double abstol, DarkSunParameters &params) {
     iwork[i] = 0;
     work[i] = 0.0;
   }
+  work[6] = 1e-2; // Set maximum step size to 0.01
 
   //==================================================================
   //---- Define lambdas which capture the model ----------------------
@@ -210,6 +217,8 @@ void solve_boltzmann(double reltol, double abstol, DarkSunParameters &params) {
     params.eta_si_per_mass = cross_section_2eta_2eta(params) / m_eta(params);
     params.del_si_per_mass = cross_section_2del_2del(params) / m_del(params);
   } else {
+    params.xi_fo = NAN;
+    params.tsm_fo = NAN;
     params.rd_eta = NAN;
     params.rd_del = NAN;
     params.xi_cmb = NAN;
@@ -220,8 +229,6 @@ void solve_boltzmann(double reltol, double abstol, DarkSunParameters &params) {
     params.del_si_per_mass = NAN;
   }
 }
-
-} // namespace model
 
 } // namespace darksun
 

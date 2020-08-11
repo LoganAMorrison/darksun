@@ -7,7 +7,6 @@
 #include <gsl/gsl_sf_lambert.h>
 
 namespace darksun {
-namespace model {
 
 auto xi_bounds_const_td(const double td, const DarkSunParameters &params)
     -> std::pair<double, double> {
@@ -101,7 +100,6 @@ double compute_xi_const_tsm(const double tsm, const DarkSunParameters &params) {
   return (res.second + res.first) / 2.0;
 }
 
-} // namespace model
 } // namespace darksun
 
 #endif // DARKSUN_MODEL_COMPUTE_XI_HPP

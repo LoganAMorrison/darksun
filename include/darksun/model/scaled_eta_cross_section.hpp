@@ -6,8 +6,6 @@
 
 namespace darksun {
 
-namespace model {
-
 class ScaledEtaCrossSection {
 public:
   /**
@@ -899,8 +897,6 @@ const double ScaledEtaCrossSection::log_eta_cs46[500] = {
     16.148383122242748,   16.187352124347449,    16.226725093952211,
     16.265861541535472,   16.305839847907336,    16.344770891275463,
     16.383723805130685,   16.423094263321328};
-
-} // namespace model
 
 } // namespace darksun
 

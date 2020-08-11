@@ -39,5 +39,3 @@ compile_commands.json
 .clangd
 .idea
 
-# Ignore rundata (for now)
-rundata
