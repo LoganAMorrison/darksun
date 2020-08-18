@@ -44,9 +44,9 @@ if __name__ == "__main__":
     plt.contourf(
         n_array, lam_array, sie_array, levels=[SI_BOUND, 1e30], alpha=0.5
     )
-    plt.contourf(
-        n_array, lam_array, sid_array, levels=[SI_BOUND, 1e30], alpha=0.5
-    )
+    #    plt.contourf(
+    #        n_array, lam_array, sid_array, levels=[SI_BOUND, 1e30], alpha=0.5
+    #    )
 
     plt.yscale("log")
     plt.xscale("log")
