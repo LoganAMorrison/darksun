@@ -36,7 +36,7 @@ void boltzmann(int *, double *t, double *y, double *dy,
   const double com =
       sqrt(M_PI / 45) * M_PLANK * sqrt_gstar(tsm, xi, params) * tsm;
   const double pfe = -s * s * com;
-  const double pfd = com / x;
+  const double pfd = com;
 
   dy[0] = pfe * sige * exp(we) * (exp(2 * we) - exp(2 * we_eq));
   dy[1] = pfd * sigd * exp(2 * we);
@@ -65,7 +65,7 @@ void boltzmann_jac(int *, double *t, double *y, double *dfy, int *,
   const double com =
       sqrt(M_PI / 45) * M_PLANK * sqrt_gstar(tsm, xi, params) * tsm;
   const double pfe = com * (-s * s);
-  const double pfd = com / x;
+  const double pfd = com;
 
   // dfe / dWe
   dfy[0] = pfe * sige * exp(we) * (3.0 * exp(2 * we) - exp(2 * we_eq));

@@ -47,8 +47,8 @@ double yeq_eta(const double tsm, const double xi,
 
   const double x = m_eta(params) / (tsm * xi);
   const double g = 1.0;
-  const double fac =
-      45.0 * g * x * x / (4.0 * pow<4>(M_PI) * StandardModel::heff(tsm));
+  const double fac = 45.0 * g * pow<2>(x) * pow<3>(xi) /
+                     (4.0 * pow<4>(M_PI) * StandardModel::heff(tsm));
 
   double bessum = 0.0;
   for (int k = 0; k < 5; k++) {
@@ -63,8 +63,8 @@ double yeq_del(const double tsm, const double xi,
   const double x = m_del(params) / (tsm * xi);
   const double g = g_del(params);
   const double eta = params.n % 2 == 0 ? 1.0 : -1.0;
-  const double fac =
-      45.0 * g * x * x / (4.0 * pow<4>(M_PI) * StandardModel::heff(tsm));
+  const double fac = 45.0 * g * pow<2>(x) * pow<3>(xi) /
+                     (4.0 * pow<4>(M_PI) * StandardModel::heff(tsm));
 
   double bessum = 0.0;
   for (int k = 0; k < 5; k++) {
@@ -78,8 +78,8 @@ double weq_eta(const double tsm, const double xi,
   using boost::math::pow;
   const double x = m_eta(params) / (tsm * xi);
   const double g = 1.0;
-  const double fac =
-      45.0 * g * x * x / (4.0 * pow<4>(M_PI) * StandardModel::heff(tsm));
+  const double fac = 45.0 * g * pow<2>(x) * pow<3>(xi) /
+                     (4.0 * pow<4>(M_PI) * StandardModel::heff(tsm));
 
   double bessum = 0.0;
   for (int k = 0; k < 5; k++) {
@@ -94,8 +94,8 @@ double weq_del(const double tsm, const double xi,
   const double x = m_del(params) / (tsm * xi);
   const double g = g_del(params);
   const double eta = params.n % 2 == 0 ? 1.0 : -1.0;
-  const double fac =
-      45.0 * g * x * x / (4.0 * pow<4>(M_PI) * StandardModel::heff(tsm));
+  const double fac = 45.0 * g * pow<2>(x) * pow<3>(xi) /
+                     (4.0 * pow<4>(M_PI) * StandardModel::heff(tsm));
 
   double bessum = 0.0;
   for (int k = 0; k < 5; k++) {

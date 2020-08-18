@@ -30,20 +30,27 @@ int main() {
       "../rundata/cs_data/log10_cs66.dat");
   std::string fname_cs46 = std::filesystem::current_path().append(
       "../rundata/cs_data/log10_cs46.dat");
+  std::string fname_cs =
+      std::filesystem::current_path().append("../rundata/cs_data/log10_cs.csv");
 
   std::ofstream file_zs;
   std::ofstream file_cs44;
   std::ofstream file_cs66;
   std::ofstream file_cs46;
+  std::ofstream file_cs;
   file_zs.open(fname_zs);
   file_cs44.open(fname_cs44);
   file_cs66.open(fname_cs66);
   file_cs46.open(fname_cs46);
+  file_cs.open(fname_cs);
 
   file_zs << std::setprecision(17);
   file_cs44 << std::setprecision(17);
   file_cs66 << std::setprecision(17);
   file_cs46 << std::setprecision(17);
+  file_cs << std::setprecision(17);
+
+  file_cs << "LOG10_Z,LOG10_CS44,LOG10_CS66,LOG10_CS46\n";
 
   const double logz_min = log10(4.0 + 1e-5);
   const double logz_max = log10(100.0);
@@ -59,6 +66,9 @@ int main() {
     file_cs44 << log10(std::get<0>(res)) << "\n";
     file_cs66 << log10(std::get<1>(res)) << "\n";
     file_cs46 << log10(std::get<2>(res)) << "\n";
+    file_cs << logz << "," << log10(std::get<0>(res)) << ","
+            << log10(std::get<1>(res)) << "," << log10(std::get<2>(res))
+            << "\n";
     ++progress;
   }
 

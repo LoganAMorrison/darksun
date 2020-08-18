@@ -99,6 +99,7 @@ endforeach()
 
 set(APP_FILES
 	"bm"
+	"bm2"
 	"c"
 	"c_vs_n"
 	"lec1"
