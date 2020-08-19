@@ -138,7 +138,7 @@ void solve_boltzmann(double reltol, double abstol, DarkSunParameters &params) {
   constexpr int ndim = 2;
   double y[ndim];
   y[0] = weq_eta(tsm, xi, params);
-  y[1] = exp(-params.adel * params.n) * yeq_del(tsm, xi, params);
+  y[1] = 0.0; // exp(-params.adel * params.n) * yeq_del(tsm, xi, params);
 
   //==================================================================
   //---- Set RADAU scalar parameters ---------------------------------

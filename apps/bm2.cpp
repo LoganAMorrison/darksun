@@ -32,7 +32,7 @@ bool set_model(size_t i, DarkSunParameters &params) {
     params.n = N_MIN + idx_n * N_STP;
     params.lam = pow(10.0, LOG_LAM_MIN + idx_lam * LOG_LAM_STP);
     params.lec1 = 0.05;
-    params.lec2 = 10.0;
+    params.lec2 = 1.0;
 
     ++progress;
 
