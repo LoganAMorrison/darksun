@@ -31,14 +31,15 @@ double neq_del(const double td, const DarkSunParameters &params) {
 
   const double x = m_del(params) / td;
   const double g = g_del(params);
-  const double eta = params.n % 2 == 0 ? 1.0 : -1.0;
+  // const double eta = params.n % 2 == 0 ? 1.0 : -1.0;
   const double fac = g * pow<2>(x) * pow<3>(td) / (2.0 * pow<2>(M_PI));
 
-  double bessum = 0.0;
-  for (int k = 0; k < 5; k++) {
-    bessum += std::pow(eta, k) * gsl_sf_bessel_Kn(2, (1 + k) * x) / (1 + k);
-  }
-  return fac * bessum;
+  //  double bessum = 0.0;
+  //  for (int k = 0; k < 5; k++) {
+  //    bessum += std::pow(eta, k) * gsl_sf_bessel_Kn(2, (1 + k) * x) / (1 + k);
+  //  }
+  // return fac * bessum;
+  return fac * gsl_sf_bessel_Kn(2, x);
 }
 
 double yeq_eta(const double tsm, const double xi,
@@ -62,15 +63,16 @@ double yeq_del(const double tsm, const double xi,
   using boost::math::pow;
   const double x = m_del(params) / (tsm * xi);
   const double g = g_del(params);
-  const double eta = params.n % 2 == 0 ? 1.0 : -1.0;
+  // const double eta = params.n % 2 == 0 ? 1.0 : -1.0;
   const double fac = 45.0 * g * pow<2>(x) * pow<3>(xi) /
                      (4.0 * pow<4>(M_PI) * StandardModel::heff(tsm));
 
-  double bessum = 0.0;
-  for (int k = 0; k < 5; k++) {
-    bessum += std::pow(eta, k) * gsl_sf_bessel_Kn(2, (1 + k) * x) / (1 + k);
-  }
-  return fac * bessum;
+  // double bessum = 0.0;
+  // for (int k = 0; k < 5; k++) {
+  // bessum += std::pow(eta, k) * gsl_sf_bessel_Kn(2, (1 + k) * x) / (1 + k);
+  //}
+  // return fac * bessum;
+  return fac * gsl_sf_bessel_Kn(2, x);
 }
 
 double weq_eta(const double tsm, const double xi,
@@ -93,16 +95,17 @@ double weq_del(const double tsm, const double xi,
   using boost::math::pow;
   const double x = m_del(params) / (tsm * xi);
   const double g = g_del(params);
-  const double eta = params.n % 2 == 0 ? 1.0 : -1.0;
+  // const double eta = params.n % 2 == 0 ? 1.0 : -1.0;
   const double fac = 45.0 * g * pow<2>(x) * pow<3>(xi) /
                      (4.0 * pow<4>(M_PI) * StandardModel::heff(tsm));
 
-  double bessum = 0.0;
-  for (int k = 0; k < 5; k++) {
-    bessum += exp(-k * x) * std::pow(eta, k) *
-              gsl_sf_bessel_Kn_scaled(2, (1 + k) * x) / (1 + k);
-  }
-  return -x + log(fac * bessum);
+  //  double bessum = 0.0;
+  //  for (int k = 0; k < 5; k++) {
+  //    bessum += exp(-k * x) * std::pow(eta, k) *
+  //              gsl_sf_bessel_Kn_scaled(2, (1 + k) * x) / (1 + k);
+  //  }
+  //  return -x + log(fac * bessum);
+  return -x + log(fac * gsl_sf_bessel_Kn_scaled(2, x));
 }
 
 //===========================================================================
@@ -122,7 +125,7 @@ double dark_heff(const double td, const DarkSunParameters &params) {
   const double gd = g_del(params);
 
   const double etae = 1.0;
-  const double etad = params.n % 2 == 0 ? 1.0 : -1.0;
+  // const double etad = params.n % 2 == 0 ? 1.0 : -1.0;
 
   const double pre = 45.0 / (4.0 * pow<4>(M_PI));
   const double pree = pre * ge * pow<3>(xe);
@@ -132,8 +135,10 @@ double dark_heff(const double td, const DarkSunParameters &params) {
   double bessumd = 0.0;
   for (int k = 0; k < 5; k++) {
     bessume += std::pow(etae, k) / (1 + k) * gsl_sf_bessel_Kn(3, (1 + k) * xe);
-    bessumd += std::pow(etad, k) / (1 + k) * gsl_sf_bessel_Kn(3, (1 + k) * xd);
+    // bessumd += std::pow(etad, k) / (1 + k) * gsl_sf_bessel_Kn(3, (1 + k) *
+    // xd);
   }
+  bessumd = gsl_sf_bessel_Kn(3, xd);
 
   return pree * bessume + pred * bessumd;
 }
@@ -147,7 +152,7 @@ double dark_geff(const double td, const DarkSunParameters &params) {
   const double gd = g_del(params);
 
   const double etae = 1.0;
-  const double etad = params.n % 2 == 0 ? 1.0 : -1.0;
+  // const double etad = params.n % 2 == 0 ? 1.0 : -1.0;
 
   const double pre = 30.0 / (2.0 * pow<4>(M_PI));
   const double pree = pre * ge * pow<2>(xe);
@@ -159,10 +164,11 @@ double dark_geff(const double td, const DarkSunParameters &params) {
     bessume += std::pow(etae, k) / pow<2>(1 + k) *
                ((1 + k) * xe * gsl_sf_bessel_Kn(1, (1 + k) * xe) +
                 3.0 * gsl_sf_bessel_Kn(2, (1 + k) * xe));
-    bessumd += std::pow(etad, k) / pow<2>(1 + k) *
-               ((1 + k) * xd * gsl_sf_bessel_Kn(1, (1 + k) * xd) +
-                3.0 * gsl_sf_bessel_Kn(2, (1 + k) * xd));
+    //    bessumd += std::pow(etad, k) / pow<2>(1 + k) *
+    //               ((1 + k) * xd * gsl_sf_bessel_Kn(1, (1 + k) * xd) +
+    //                3.0 * gsl_sf_bessel_Kn(2, (1 + k) * xd));
   }
+  bessumd += xd * gsl_sf_bessel_Kn(1, xd) + 3.0 * gsl_sf_bessel_Kn(2, xd);
 
   return pree * bessume + pred * bessumd;
 }

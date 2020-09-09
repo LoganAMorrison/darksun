@@ -6,10 +6,15 @@ SU(N) simulations.
 """
 
 import numpy as np
+from scipy.special import kv
+from scipy.interpolate import UnivariateSpline
+from sm_data import sm_geff_data, sm_heff_data, sm_sqrt_gstar_data, sm_temps
 
 
 OMEGA_CDM_H2 = 0.1198
 SI_BOUND = 457.281  # 0.1 cm^2 / g
+
+# Load SM data
 
 
 def remove_nans(arr):
@@ -51,3 +56,130 @@ def remove_nans(arr):
                     if cnt > 0:
                         arr[n, m] = avg / cnt
         done = np.sum(np.isnan(arr)) == 0
+
+
+class DarkSun:
+    def __init__(self, n, lam, c, lec1, lec2, mu_eta, mu_del, xi_inf):
+        self.n = n
+        self.lam = lam
+        self.c = c
+        self.lec1 = lec1
+        self.lec2 = lec2
+        self.mu_eta = mu_eta
+        self.mu_del = mu_del
+        self.xi_inf = xi_inf
+
+    def m_eta(self):
+        """
+        Compute the mass of the eta.
+        """
+        return self.lam * self.mu_eta / np.sqrt(self.n)
+
+    def m_del(self):
+        """
+        Compute the mass of the delta.
+        """
+        return self.lam * self.mu_del * self.n
+
+    def g_del(self):
+        """
+        Compute the d.o.f. or the delta.
+        """
+        return self.n + 1
+
+    def dark_heff(self, td):
+        """
+        Compute the effective d.o.f. in entropy of the dark sector.
+
+        Parameters
+        ----------
+        td: float
+            The dark sector temperature.
+        """
+        xe = self.m_eta() / td
+        xd = self.m_del() / td
+
+        ge = 1.0
+        gd = self.g_del()
+
+        pre = 45.0 / (4.0 * np.pi ** 4)
+        pree = pre * ge * xe ** 3
+        pred = pre * gd * xd ** 3
+
+        bess_sum_e = sum(
+            1.0 / (1.0 + k) * kv(3, (1.0 + k) * xe) for k in range(5)
+        )
+        bess_sum_d = kv(3, xd)
+
+        return pree * bess_sum_e + pred * bess_sum_d
+
+    def dark_geff(self, td):
+        """
+        Compute the effective d.o.f. in energy of the dark sector.
+
+        Parameters
+        ----------
+        td: float
+            The dark sector temperature.
+        """
+        xe = self.m_eta() / td
+        xd = self.m_del() / td
+
+        ge = 1.0
+        gd = self.g_del()
+
+        pre = 30.0 / (2.0 * np.pi ** 4)
+        pree = pre * ge * xe ** 2
+        pred = pre * gd * xd ** 2
+
+        bess_sum_e = sum(
+            1.0
+            / (1.0 + k) ** 2
+            * (
+                (1.0 + k) * xe * kv(1, (1.0 + k) * xe)
+                + 3.0 * kv(2, (1.0 + k) * xe)
+            )
+            for k in range(5)
+        )
+        bess_sum_d = xd * kv(1, xd) + 3.0 * kv(2, xd)
+
+        return pree * bess_sum_e + pred * bess_sum_d
+
+
+class StandardModel:
+    _LOG_TEMP_MIN = -4.5
+    _LOG_TEMP_MAX = 4.0
+    _LOG_TEMP_STP = 0.025
+
+    def __init__(self):
+        self._heff_interp = UnivariateSpline(
+            sm_temps, sm_heff_data, s=0, ext=3
+        )
+        self._geff_interp = UnivariateSpline(
+            sm_temps, sm_heff_data, s=0, ext=3
+        )
+        self._sqrt_gstar_interp = UnivariateSpline(
+            sm_temps, sm_sqrt_gstar_data, s=0, ext=3
+        )
+
+    def heff(self, tsm):
+        """
+        Returns the effective number of d.o.f. in entropy of the SM.
+        """
+        ltsm = np.log10(tsm)
+        return self._heff_interp(ltsm)
+
+    def geff(self, tsm):
+        """
+        Returns the effective number of d.o.f. in energy of the SM.
+        """
+        ltsm = np.log10(tsm)
+        return self._geff_interp(ltsm)
+
+    def sqrt_gstar(self, tsm):
+        """
+        Returns the square-root of gstar of the SM.
+        """
+        ltsm = np.log10(tsm)
+        return self._sqrt_gstar_interp(ltsm)
+

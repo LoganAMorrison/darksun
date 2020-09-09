@@ -1,5 +1,6 @@
 #include <boost/timer/progress_display.hpp>
 #include <darksun/darksun.hpp>
+#include <darksun/scanner.hpp>
 #include <filesystem>
 #include <mutex>
 #include <thread>

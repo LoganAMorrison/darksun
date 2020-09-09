@@ -12,6 +12,5 @@
 #include "darksun/model/parameters.hpp"
 #include "darksun/model/scaled_eta_cross_section.hpp"
 #include "darksun/model/thermal_functions.hpp"
-#include "darksun/scanner.hpp"
 
 #endif // DARKSUN_DARKSUN_HPP

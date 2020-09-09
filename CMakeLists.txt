@@ -99,14 +99,16 @@ endforeach()
 
 set(APP_FILES
 	"bm"
+	"bm1"
 	"bm2"
-	"c"
+	"bm3"
+	#"c"
 	"c_vs_n"
-	"lec1"
-	"lec2"
-	"mu_eta"		
-	"mu_del"
-	"xi_inf"
+	#"lec1"
+	#"lec2"
+	#"mu_eta"		
+	#"mu_del"
+	#"xi_inf"
 	"generate_cs_data"
 	"thermal_cross_section")
 

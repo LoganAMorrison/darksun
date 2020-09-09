@@ -8,7 +8,9 @@
 #include "darksun/darksun.hpp"
 #include <fstream>
 #include <functional>
+#include <mutex>
 #include <string>
+#include <thread>
 #include <utility>
 
 namespace darksun {
@@ -30,25 +32,38 @@ private:
   const std::string header =
       "N,LAM,C,ADEL,LEC1,LEC2,MU_ETA,MU_DEL,XI_INF,XI_FO,TSM_FO,XI_CMB,XI_BBN,"
       "RD_ETA,RD_DEL,DNEFF_CMB,DNEFF_BBN,ETA_SI_PER_MASS,DEL_SI_PER_MASS";
-
-  static void output_data(std::ofstream &ofile,
-                          const DarkSunParameters &params);
-};
-
-void Scanner::scan() {
-  size_t counter = 0;
-
+  // Mutex for outputting data to file
+  std::mutex outmutex;
+  // Mutex for getting iter
+  std::mutex itermutex;
+  // Stream object for outputting data
   std::ofstream ofile;
-  ofile.open(file_name);
-  if (ofile.is_open()) {
-    ofile << header;
-  } else {
-    throw std::runtime_error("Cannot open file: " + file_name);
+
+  size_t iter = 0;
+  size_t get_iter();
+  void thread_scan();
+
+  // Spawner for threads
+  std::thread spawn_thread_scan() {
+    return std::thread([this] { this->thread_scan(); });
   }
 
+  void output_data(std::ofstream &ofile, const DarkSunParameters &params);
+};
+
+size_t Scanner::get_iter() {
+  // Lock function, get current iter, update iter and return value
+  std::lock_guard<std::mutex> lock(itermutex);
+  size_t it = iter;
+  iter++;
+  return it;
+}
+
+void Scanner::thread_scan() {
   while (true) {
     auto params = DarkSunParameters{0, 0};
-    if (set_model(counter, params)) {
+    size_t it = get_iter();
+    if (set_model(it, params)) {
       break;
     }
     try {
@@ -66,7 +81,35 @@ void Scanner::scan() {
       params.del_si_per_mass = NAN;
     }
     output_data(ofile, params);
-    counter++;
+  }
+}
+
+void Scanner::scan() {
+  // Reset the iter
+  iter = 0;
+
+  // Open and make sure output file exists. If it does, write the header.
+  ofile.open(file_name);
+  if (ofile.is_open()) {
+    ofile << header;
+  } else {
+    throw std::runtime_error("Cannot open file: " + file_name);
+  }
+
+  // Function for threads to run
+  // auto f = [this]() { thread_scan(); };
+
+  // Get the number of cpus
+  const auto cpu_count = std::thread::hardware_concurrency();
+  // Create threads
+  std::vector<std::thread> threads(cpu_count);
+  // Launch the threads
+  for (auto &thread : threads) {
+    thread = spawn_thread_scan();
+  }
+  // Wait for threads to finish
+  for (auto &thread : threads) {
+    thread.join();
   }
 
   ofile.close();
@@ -74,6 +117,8 @@ void Scanner::scan() {
 
 void Scanner::output_data(std::ofstream &ofile,
                           const DarkSunParameters &params) {
+  // Lock this function to avoid data races
+  const std::lock_guard<std::mutex> lock(outmutex);
   // Go to next line
   ofile << std::endl;
   // Model parameters

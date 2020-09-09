@@ -11,7 +11,7 @@ namespace darksun {
 class DarkSunParameters {
 
 public:
-  size_t n;             // N in SU(N)
+  double n;             // N in SU(N)
   double lam;           // Confinement scale
   double c = 1.0;       // Suppression constant for 2eta->2del
   double adel = 1.0;    // Suppression constant for init delta abundance
@@ -45,7 +45,7 @@ public:
   gsl_interp_accel *acc_cs66;
   gsl_interp_accel *acc_cs46;
 
-  DarkSunParameters(size_t n, double lam) : n(n), lam(lam) {
+  DarkSunParameters(double n, double lam) : n(n), lam(lam) {
     acc_cs44 = gsl_interp_accel_alloc();
     acc_cs66 = gsl_interp_accel_alloc();
     acc_cs46 = gsl_interp_accel_alloc();
