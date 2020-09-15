@@ -9,12 +9,27 @@ import numpy as np
 from scipy.special import kv
 from scipy.interpolate import UnivariateSpline
 from sm_data import sm_geff_data, sm_heff_data, sm_sqrt_gstar_data, sm_temps
+from skimage.measure import find_contours as _find_contours
 
 
 OMEGA_CDM_H2 = 0.1198
 SI_BOUND = 457.281  # 0.1 cm^2 / g
+NEFF_CMB_BOUND = (2.92, 0.36)
+NEFF_BBN_BOUND = (2.85, 0.28)
 
-# Load SM data
+
+def find_contour(xs, ys, zs, level):
+    """
+    Find the controur.
+    """
+    contour = _find_contours(zs, level)[0]
+
+    jjs, iis = contour.T
+
+    new_ys = np.interp(jjs, np.arange(len(ys)), ys)
+    new_xs = np.interp(iis, np.arange(len(xs)), xs)
+
+    return new_xs, new_ys
 
 
 def remove_nans(arr):
@@ -144,6 +159,23 @@ class DarkSun:
         bess_sum_d = xd * kv(1, xd) + 3.0 * kv(2, xd)
 
         return pree * bess_sum_e + pred * bess_sum_d
+
+    def cross_section_2eta_2eta(self):
+        """
+        Compute the self interaction cross section of the eta.
+        """
+        return (
+            62.012553360599640
+            * self.mu_eta ** 6
+            * self.lec1 ** 2
+            / (self.lam ** 2 * self.n ** 5)
+        )
+
+    def cross_section_2del_2del(self):
+        """
+        Compute the self interaction cross section of the delta.
+        """
+        return 4.0 * np.pi ** 3 / self.lam ** 2
 
 
 class StandardModel:

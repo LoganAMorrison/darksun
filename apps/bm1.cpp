@@ -1,5 +1,5 @@
 /*
- * File for generating the data for lec1=1.0 and lec2=0.0 as well as a value
+ * File for generating the data for lec1=0.1 and lec2=1.0 as well as a value
  * of c such that the delta obtains the correct relic density at N=7.
  */
 
@@ -23,14 +23,13 @@ static constexpr double LOG_LAM_MAX = 1.0;
 static constexpr double LOG_LAM_STP =
     (LOG_LAM_MAX - LOG_LAM_MIN) / double(NUM_LAM - 1);
 
-static constexpr double LEC1 = 1.0;
-static constexpr double LEC2 = 0.0;
-
-// Value of c that yields correct delta RD at N = 7
+static constexpr double LEC1 = 0.1;
+static constexpr double LEC2 = 1.0;
+static constexpr double XI_INF = 1e-2;
 static constexpr double C = 0.666544284531189;
 
 const std::string FNAME = std::filesystem::current_path().append(
-    "../rundata/bm_lec1=0.1_lec2=1.0.csv");
+    "../rundata/bm_lec1=0.1_lec2=1_xi_inf=1e-2.csv");
 
 static boost::timer::progress_display progress(NUM_N *NUM_LAM);
 static std::mutex progress_mutex;
@@ -44,6 +43,7 @@ bool set_model(size_t i, DarkSunParameters &params) {
     params.lam = pow(10.0, LOG_LAM_MIN + idx_lam * LOG_LAM_STP);
     params.lec1 = LEC1;
     params.lec2 = LEC2;
+    params.xi_inf = XI_INF;
     params.c = C;
     {
       std::lock_guard<std::mutex> lock(progress_mutex);

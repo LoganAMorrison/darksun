@@ -3,6 +3,7 @@
 """
 Script for generating the plots of dneff vs. N
 """
+import os
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -19,6 +20,24 @@ OMEGA_CDM_H2 = 0.1198
 SI_BOUND = 457.281  # 0.1 cm^2 / g
 NEFF_CMB_BOUND = (2.92, 0.36)
 NEFF_BBN_BOUND = (2.85, 0.28)
+
+FILE_NAMES = [
+    "bm_lec1=1_lec2=0_xi_inf=1e-2",
+    "bm_lec1=0.1_lec2=1_xi_inf=1e-2",
+    "bm_lec1=0.1_lec2=1_xi_inf=5e-2",
+    "bm_lec1=1e-3_lec2=1_xi_inf=1e-2",
+]
+
+DATA_FILES = [
+    os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "..",
+        "..",
+        "rundata",
+        fn + ".csv",
+    )
+    for fn in FILE_NAMES
+]
 
 
 def find_cont(xs, ys, zs, level=SI_BOUND):

@@ -1,5 +1,5 @@
 /*
- * File for generating the data for lec1=0.0 and lec2=1.0 as well as a value
+ * File for generating the data for lec1=0.1 and lec2=1.0 as well as a value
  * of c such that the delta obtains the correct relic density at N=7.
  */
 
@@ -23,23 +23,18 @@ static constexpr double LOG_LAM_MAX = 1.0;
 static constexpr double LOG_LAM_STP =
     (LOG_LAM_MAX - LOG_LAM_MIN) / double(NUM_LAM - 1);
 
-static constexpr double LEC1 = 0.1;
-static constexpr double LEC2 = 1.0;
-static constexpr double XI_INF1 = 1e-1;
-static constexpr double XI_INF2 = 1e-3;
-
-// Value of c that yields correct delta RD at N = 7
+static constexpr double LEC1 = 1.0;
+static constexpr double LEC2 = 0.0;
+static constexpr double XI_INF = 1e-2;
 static constexpr double C = 0.666544284531189;
 
-const std::string FNAME1 = std::filesystem::current_path().append(
-    "../rundata/bm_lec1=0.1_lec2=1.0_xi_inf=1e-1.csv");
-const std::string FNAME2 = std::filesystem::current_path().append(
-    "../rundata/bm_lec1=0.1_lec2=1.0_xi_inf=1e-3.csv");
+const std::string FNAME = std::filesystem::current_path().append(
+    "../rundata/bm_lec1=1_lec2=0_xi_inf=1e-2.csv");
 
 static boost::timer::progress_display progress(NUM_N *NUM_LAM);
 static std::mutex progress_mutex;
 
-bool set_model(size_t i, DarkSunParameters &params, double xi_inf) {
+bool set_model(size_t i, DarkSunParameters &params) {
   if (i < NUM_LAM * NUM_N) {
     int idx_n = i % NUM_N;
     int idx_lam = (i - idx_n) / NUM_N;
@@ -48,7 +43,7 @@ bool set_model(size_t i, DarkSunParameters &params, double xi_inf) {
     params.lam = pow(10.0, LOG_LAM_MIN + idx_lam * LOG_LAM_STP);
     params.lec1 = LEC1;
     params.lec2 = LEC2;
-    params.xi_inf = xi_inf;
+    params.xi_inf = XI_INF;
     params.c = C;
     {
       std::lock_guard<std::mutex> lock(progress_mutex);
@@ -62,14 +57,6 @@ bool set_model(size_t i, DarkSunParameters &params, double xi_inf) {
 }
 
 int main() {
-  auto f1 = [](size_t i, DarkSunParameters &params) {
-    return set_model(i, params, XI_INF1);
-  };
-  auto f2 = [](size_t i, DarkSunParameters &params) {
-    return set_model(i, params, XI_INF2);
-  };
-  Scanner s1(FNAME1, f1);
-  s1.scan();
-  Scanner s2(FNAME2, f2);
-  s2.scan();
+  Scanner s(FNAME, set_model);
+  s.scan();
 }

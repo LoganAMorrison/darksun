@@ -7,30 +7,20 @@ import matplotlib as mpl
 from matplotlib.lines import Line2D
 import numpy as np
 import pandas as pd
-from utils import remove_nans, OMEGA_CDM_H2
+from utils import remove_nans, OMEGA_CDM_H2, find_contour
 from scipy.interpolate import interp2d, interp1d
-from skimage.measure import find_contours
 
 
-def find_cont(xs, ys, zs):
-    contour = find_contours(zs, OMEGA_CDM_H2)[0]
-
-    jjs, iis = contour.T
-
-    new_ys = np.interp(jjs, np.arange(len(ys)), ys)
-    new_xs = np.interp(iis, np.arange(len(xs)), xs)
-
-    return new_xs, new_ys
+BASE_PATH = "/home/logan/Research/DarkSun/cpp/rundata/"
+DATA_FILES = [BASE_PATH + "c_vs_n1.csv", BASE_PATH + "c_vs_n2.csv"]
 
 
-if __name__ == "__main__":
+def generate_plot(idx):
     # Load the benchmark data and extract needed quantities
-    data6 = pd.read_csv(
-        "/home/logan/Projects/DarkSun/cpp/rundata/c_vs_n_lam=1e-4_lec1=0.1_lec2=1.0.csv"
-    )
+    data = pd.read_csv(DATA_FILES[idx])
 
-    data6.sort_values(by=["C", "N"], inplace=True)
-    data6.drop(
+    data.sort_values(by=["C", "N"], inplace=True)
+    data.drop(
         [
             "ADEL",
             "DNEFF_CMB",
@@ -51,18 +41,17 @@ if __name__ == "__main__":
         axis=1,
         inplace=True,
     )
-    print(data6)
 
-    ns = np.unique(np.array(data6["N"]))
-    cs = np.unique(np.array(data6["C"]))
+    ns = np.unique(np.array(data["N"]))
+    cs = np.unique(np.array(data["C"]))
 
-    n_array = np.array(data6["N"]).reshape((len(cs), len(ns)))
-    c_array = np.array(data6["C"]).reshape((len(cs), len(ns)))
+    n_array = np.array(data["N"]).reshape((len(cs), len(ns)))
+    c_array = np.array(data["C"]).reshape((len(cs), len(ns)))
 
     mpl.use("TkAgg")
     plt.figure(dpi=100)
 
-    rdd_array = np.array(data6["RD_DEL"]).reshape((len(cs), len(ns)))
+    rdd_array = np.array(data["RD_DEL"]).reshape((len(cs), len(ns)))
     remove_nans(rdd_array)
 
     plt.contour(
@@ -88,14 +77,14 @@ if __name__ == "__main__":
         c_array,
         rdd_array,
         levels=[OMEGA_CDM_H2 / 3.0, OMEGA_CDM_H2, 3.0 * OMEGA_CDM_H2],
-        colors=["firebrick", "steelblue"],
+        colors=["firebrick", "k", "steelblue"],
         alpha=0.5,
     )
 
     plt.ylabel(r"$c$", fontdict={"size": 16})
     plt.xlabel(r"$N$", fontdict={"size": 16})
 
-    NS, LOGCS = find_cont(ns, np.log10(cs), rdd_array)
+    NS, LOGCS = find_contour(ns, np.log10(cs), rdd_array, OMEGA_CDM_H2)
     logc_interp = interp1d(NS, LOGCS)
     print(10.0 ** logc_interp(6))
     print(10.0 ** logc_interp(7))
@@ -103,12 +92,11 @@ if __name__ == "__main__":
 
     plt.yscale("log")
     plt.xscale("log")
-    plt.xlim([np.min(ns), 12])
+    plt.xlim([np.min(ns), 15])
 
-    plt.xticks(
-        [5, 6, 7, 8, 9, 10, 11, 12],
-        ["5", "6", "7", "8", "9", "10", "12", "13"],
-    )
+    xticks = np.arange(5, 16)
+    plt.xticks(xticks, [str(t) for t in xticks])
+
     lines = [
         Line2D([0], [0], color="k", linewidth=1, linestyle="-"),
         Line2D([0], [0], color="steelblue", linewidth=1, linestyle="-"),
@@ -121,4 +109,17 @@ if __name__ == "__main__":
     ]
     plt.legend(lines, labels, frameon=False, fontsize=12)
 
-    plt.savefig("/home/logan/Projects/DarkSun/cpp/analysis/figures/c_vs_n.pdf")
+    plt.savefig(
+        "/home/logan/Research/DarkSun/cpp/analysis/figures/c_vs_n"
+        + str(idx + 1)
+        + ".pdf"
+    )
+
+    if idx == 1:
+        plt.show()
+
+
+if __name__ == "__main__":
+    for idx in range(len(DATA_FILES)):
+        generate_plot(idx)
+

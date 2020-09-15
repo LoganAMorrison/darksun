@@ -25,14 +25,11 @@ static constexpr double LOG_LAM_STP =
 
 static constexpr double LEC1 = 0.1;
 static constexpr double LEC2 = 1.0;
-
 static constexpr double XI_INF = 5e-2;
-
-// Value of c that yields correct delta RD at N = 7
-static constexpr double C = 0.666544284531189;
+static constexpr double C = 1.2364;
 
 const std::string FNAME = std::filesystem::current_path().append(
-    "../rundata/bm_lec1=0.1_lec2=1.0_xi_inf=5e-2.csv");
+    "../rundata/bm_lec1=0.1_lec2=1_xi_inf=5e-2.csv");
 
 static boost::timer::progress_display progress(NUM_N *NUM_LAM);
 static std::mutex progress_mutex;
